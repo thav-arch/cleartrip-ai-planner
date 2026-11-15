@@ -1,7 +1,7 @@
 const $ = s => document.querySelector(s), app = $('#app');
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const F = n => Engine.fmt(n), wait = ms => new Promise(r => setTimeout(r, ms));
-const fresh = () => ({ screen: 'home', text: '', to: 'Goa', guessedTo: false, households: [], days: 5, cap: 15000, access: [], vibe: 'Relaxed', veg: false, nap: true, shift: false, remoteShort: false, dateChoice: 'shift', stayId: null, extra: 'all', forceLeg: {}, moved: false, applied: {}, bk: 0, sold: null, soldDone: false, fix: 0, reader: '', summary: '', busy: false, qa: [], asking: false, looking: false, placeErr: '', toast: '', thread: [], formErr: '', start: '' });
+const fresh = () => ({ onb: 0, justAdded: '', screen: 'home', text: '', to: 'Goa', guessedTo: false, households: [], days: 5, cap: 15000, access: [], vibe: 'Relaxed', veg: false, nap: true, shift: false, remoteShort: false, dateChoice: 'shift', stayId: null, extra: 'all', forceLeg: {}, moved: false, applied: {}, bk: 0, sold: null, soldDone: false, fix: 0, reader: '', summary: '', busy: false, qa: [], asking: false, looking: false, placeErr: '', toast: '', thread: [], formErr: '', start: '' });
 let S = fresh(), P = null, run = 0;
 const BACK = { chat: 'home', brief: 'chat', dates: 'brief', plan: 'dates', over: 'dates', stays: 'plan', family: 'stays', booking: 'stays', final: 'booking' };
 const go = s => { S.screen = s; run++; render(); };
@@ -9,7 +9,7 @@ const svg = (d, c = '#fff') => `<svg viewBox="0 0 24 24" fill="none" stroke="${c
 const I = { bed: '<path d="M5 21V5h10v16M15 10h4v11M3 21h18M8 9h4M8 13h4"/>', plane: '<path d="M3 13l18-8-6 16-3-7z"/>', train: '<rect x="6" y="3" width="12" height="14" rx="3"/><path d="M6 11h12M9 21l2-4M15 21l-2-4"/>', bus: '<rect x="5" y="4" width="14" height="13" rx="2"/><path d="M5 11h14M8 20v-3M16 20v-3"/>', sun: '<path d="M4 15a8 8 0 0116 0z"/><path d="M12 15v6M9 21h6"/>', home: '<path d="M4 11l8-7 8 7v9h-6v-6h-4v6H4z"/>', trips: '<rect x="4" y="7" width="16" height="13" rx="2"/><path d="M9 7V4h6v3M8 12h8M8 16h5"/>', work: '<rect x="4" y="8" width="16" height="12" rx="2"/><path d="M9 8V5h6v3M4 13h16"/>', user: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="10" r="3"/><path d="M6.5 18a6 6 0 0111 0"/>', offer: '<circle cx="12" cy="12" r="9"/><path d="M9 15l6-6"/>', check: '<path d="M5 12.5l5 5 9-10.500"/>' };
 const topBar = t => `<div class="top"><button class="back" data-a="back" aria-label="Back">←</button><h2>${t}</h2></div>`;
 const foot = (label, a, v, dis) => `<div class="foot"><button class="cta" data-a="${a}" ${v ? `data-v="${v}"` : ''} ${dis ? 'disabled' : ''}>${label}</button></div>`;
-const chips = (key, list, sel) => `<div class="chips">${list.map(l => `<button class="chip ${[].concat(sel).includes(l) ? 'sel' : ''}" data-a="set" data-k="${key}" data-v="${esc(l)}">${esc(l)}</button>`).join('')}</div>`;
+const chips = (key, list, sel) => `<div class="chips">${list.map(l => `<button class="chip ${[].concat(sel).includes(l) ? 'sel' : ''} ${S.justSel === key + l ? 'bump' : ''}" data-a="set" data-k="${key}" data-v="${esc(l)}">${esc(l)}</button>`).join('')}</div>`;
 const opts = (list, sel) => list.map(c => `<option ${c === sel ? 'selected' : ''}>${c}</option>`).join('');
 const remote = () => S.households.find(h => Engine.isRemote(S, h));
 const elders = () => Engine.people(S).filter(p => p.age >= 60), tots = () => Engine.people(S).filter(p => p.age < 6);
@@ -27,7 +27,16 @@ const aiChip = () => `<div class="aichip ${AI.ready ? 'on' : ''}"><i></i>${esc(A
 const greet = () => AI.persona.greet || `Hi, I’m ${AI.persona.name}. Tell me about the trip: where from, where to, how long, and who’s coming.`;
 const facts = () => `Trip: ${S.days} days in ${S.to}, ${Engine.date(S, 0)} to ${Engine.date(S, S.days - 1)}. Travellers: ${S.households.map(h => `${h.name} from ${h.from}: ${h.members.map(m => m.name + ' (' + m.age + ')').join(', ')}`).join('; ')}. Vibe wanted: ${S.vibe}. Step-free access needed by: ${S.access.join(', ') || 'no one'}. Pure-veg kitchen needed: ${S.veg ? 'yes' : 'no'}. Budget cap per person: ${S.cap} rupees. Plan cost: ${Math.round(P.per)} rupees per person, ${Math.round(P.total)} in total. Transport: ${P.legs.map(l => `${l.opt.name} from ${l.city} leaving ${l.opt.dep}, arriving ${l.opt.arr}, ${l.opt.price} rupees each way, chosen because ${l.why}; other options were ${l.all.filter(o => o.id !== l.opt.id).map(o => o.name + ' at ' + o.dep + ' for ' + o.price).join(', ') || 'none'}`).join('. ')}. Shortlisted stays: ${P.stays.map(s => `${s.name} in ${s.area}, ${s.room} rupees a room a night, rated ${s.rating} from ${s.reviews} reviews, host for ${s.hostYears} years, ${s.reasons.join(', ')}`).join(' | ')}. Current stay: ${P.stay.name}. Sights planned: ${sights().join(', ')}; optional paid activity: ${D().extra} at ${DATA.perPerson.extra} rupees per person. All data is simulated.`;
 
+const ONB = [
+  ['Plan for everyone', 'Tell it who’s going. It plans around naps, stairs and food for each person.', '<circle cx="60" cy="70" r="26" fill="#FFEFE9"/><circle cx="110" cy="58" r="30" fill="#FFD9CC"/><circle cx="160" cy="72" r="24" fill="#FFEFE9"/><circle cx="60" cy="64" r="9" fill="#F05A2A"/><circle cx="110" cy="50" r="11" fill="#F05A2A"/><circle cx="160" cy="66" r="8" fill="#F05A2A"/><rect x="38" y="112" width="144" height="14" rx="7" fill="#1A1A1A" opacity=".08"/>'],
+  ['See why, every time', 'Every step and every stay shows its reasons and proof, tagged to a person.', '<rect x="40" y="30" width="140" height="100" rx="14" fill="#fff" stroke="#E6E6E6" stroke-width="2"/><path d="M58 58l8 8 14-16" stroke="#11845B" stroke-width="4" fill="none" stroke-linecap="round"/><rect x="92" y="54" width="70" height="8" rx="4" fill="#E6E6E6"/><path d="M58 92l8 8 14-16" stroke="#11845B" stroke-width="4" fill="none" stroke-linecap="round"/><rect x="92" y="88" width="56" height="8" rx="4" fill="#E6E6E6"/><circle cx="170" cy="36" r="16" fill="#F05A2A"/><path d="M170 28v10M170 43v1" stroke="#fff" stroke-width="3" stroke-linecap="round"/>'],
+  ['You make the final call', 'The AI shortlists. You pick the stay, pay and share it with the family.', '<rect x="30" y="40" width="70" height="86" rx="12" fill="#fff" stroke="#E6E6E6" stroke-width="2"/><rect x="120" y="40" width="70" height="86" rx="12" fill="#fff" stroke="#F05A2A" stroke-width="3"/><rect x="132" y="104" width="46" height="12" rx="6" fill="#F05A2A"/><rect x="42" y="104" width="46" height="12" rx="6" fill="#E6E6E6"/><circle cx="155" cy="68" r="14" fill="#FFEFE9"/><path d="M148 68l5 5 9-10" stroke="#F05A2A" stroke-width="3" fill="none" stroke-linecap="round"/>']];
 const V = {
+  splash: () => `<div class="splash"><div class="sp-mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path class="sp-tick" d="M5 12.5l5 5 9-10.5"/></svg></div><div class="sp-word">cleartrip</div><div class="sp-tag">✦ AI trip planner</div></div>`,
+  onboard: () => `<div class="onb"><div class="onb-top"><div class="logo logo-sm"><i>${svg(I.check)}</i>cleartrip</div><button class="link" data-a="onbDone">Skip</button></div>
+    <div class="onb-view"><div class="onb-track" style="transform:translateX(${-S.onb * 100}%)">${ONB.map(([t, d, art], i) => `<div class="onb-slide ${i === S.onb ? 'on' : ''}"><svg class="onb-art" viewBox="0 0 220 150">${art}</svg><h2>${t}</h2><p>${d}</p></div>`).join('')}</div></div>
+    <div class="onb-dots">${ONB.map((_, i) => `<i class="${i === S.onb ? 'on' : ''}"></i>`).join('')}</div>
+    <div class="foot" style="border:0;background:none"><button class="cta" data-a="${S.onb < ONB.length - 1 ? 'onbNext' : 'onbDone'}">${S.onb < ONB.length - 1 ? 'Next' : 'Get started'}</button></div></div>`,
   home: () => `<div class="wrap"><div class="body">
     <div class="row c sb"><div class="logo"><i>${svg(I.check)}</i>cleartrip</div><span class="pill">Concept</span></div>
     <div class="grid"><div class="tile lg"><div class="ic" style="background:#8E6CEF">${svg(I.bed)}</div><b>Hotels</b><span>30–80% off</span></div><div class="tile lg"><div class="ic" style="background:#3B7BFF">${svg(I.plane)}</div><b>Flights</b><span>Up to 25% off</span></div></div>
@@ -43,8 +52,8 @@ const V = {
     if (!S.thread.length) b += `<p class="sec">Try one of these</p><div class="chips">${ex.map(e => `<button class="chip" data-a="example" data-v="${esc(e)}">${esc(e)}</button>`).join('')}</div>`;
     else {
       for (const m of S.thread) b += m.who === 'me' ? `<div class="msg me"><div class="bub">${esc(m.t)}</div></div>` : say(esc(m.t));
-      if (S.busy) b += say(`<div class="row c"><span class="dot spin"></span>Reading your message…</div>`);
-      else b += say(`<span>${esc(p.ack || 'Got it.')} <b>${S.days} days in ${S.to}</b>${S.guessedTo ? ' (you didn’t name a place, so I’ve assumed Goa; change it on the next screen)' : ''}. Here’s who is going:</span>${S.households.map(h => `<div><div class="d">${esc(h.name)} · from ${h.from}</div><div class="chips" style="margin-top:6px">${h.members.map(m => `<span class="chip plain">${esc(m.name)} · ${m.age}<button class="x" data-a="rm" data-v="${h.id}" data-k="${esc(m.name)}" aria-label="Remove ${esc(m.name)}">×</button></span>`).join('')}</div></div>`).join('')}<b>${plural(count(), 'traveller')} · ${plural(S.households.length, 'household')}</b>
+      if (S.busy) b += say(`<div class="typing" aria-label="Reading your message"><i></i><i></i><i></i></div>`);
+      else b += say(`<span>${esc(p.ack || 'Got it.')} <b>${S.days} days in ${S.to}</b>${S.guessedTo ? ' (you didn’t name a place, so I’ve assumed Goa; change it on the next screen)' : ''}. Here’s who is going:</span>${S.households.map(h => `<div><div class="d">${esc(h.name)} · from ${h.from}</div><div class="chips" style="margin-top:6px">${h.members.map(m => `<span class="chip plain ${m.name === S.justAdded ? 'pop' : ''}">${esc(m.name)} · ${m.age}<button class="x" data-a="rm" data-v="${h.id}" data-k="${esc(m.name)}" aria-label="Remove ${esc(m.name)}">×</button></span>`).join('')}</div></div>`).join('')}<b>${plural(count(), 'traveller')} · ${plural(S.households.length, 'household')}</b>
         <div class="addp"><p class="d">Add someone, or type a change below (like “add my sister Riya, 30”).</p><div class="row"><input id="pn" placeholder="Name" maxlength="24"><input id="pa" type="number" inputmode="numeric" min="0" max="95" placeholder="Age" style="max-width:72px"></div><select id="ph">${S.households.map(h => `<option value="${h.id}">${esc(h.name)}</option>`).join('')}<option value="new">A new household</option></select><label class="chk"><input type="checkbox" id="pacc"> Needs step-free access</label>${S.formErr ? `<p class="err">${esc(S.formErr)}</p>` : ''}<button class="sm k" data-a="addp">Add person</button></div>`) + `<p class="d center">${S.reader}</p>`;
     }
     return topBar('AI trip planner') + `<div class="body">${aiChip()}${b}</div><div class="foot"><div class="field"><textarea id="msg" placeholder="${S.thread.length ? 'Add or change anything…' : 'Type your trip…'}"></textarea><button class="send" data-a="send" aria-label="Send">↑</button></div>${S.thread.length && !S.busy ? `<button class="cta" data-a="go" data-v="brief">Looks right, continue</button>` : ''}</div>`;
@@ -95,7 +104,7 @@ const V = {
     const days = [{ t: `Arrive, lunch, settle in near ${D().centre}`, lv: 1 }, { t: S.moved ? `${s[1]} and ${s[2]}` : `${s[0]}, ${s[1]} and ${s[2]}`, lv: S.moved ? 2 : 4, heavy: heavyOn }, { t: `Easy morning${S.moved ? ', ' + s[0] : ''}${S.applied.wish === 'yes' ? ', ' + wishName() : ''}, free afternoon`, lv: 2 }, { t: `${s[3]}${S.extra === 'none' ? ', free evening' : ', then the ' + D().extra + (S.extra === 'optional' ? ' (optional)' : '')}`, lv: 3 }, { t: 'Free day', lv: 1 }, { t: 'Free day', lv: 1 }].slice(0, S.days - 1).concat({ t: 'Slow breakfast, pack, head home', lv: 1 });
     return topBar('Your trip plan') + `<div class="body">
     <div class="card"><div><div class="lab">Where to?</div><div class="val">${S.to}</div></div><hr><div class="row c sb"><div><div class="lab">Start</div><div class="val">${Engine.date(S, 0)}</div></div><span class="pill">${plural(S.days - 1, 'NIGHT')}</span><div style="text-align:right"><div class="lab">End</div><div class="val">${Engine.date(S, S.days - 1)}</div></div></div><hr><div><div class="lab">Travellers</div><div class="val">${plural(count(), 'traveller')}, ${plural(S.households.length, 'household')}</div></div><hr>
-      <div class="row sb" style="align-items:flex-end"><div><div class="big">${F(P.total)}</div><div class="d">${F(P.per)} per person</div></div><span class="pill g">Under your ${F(S.cap)} cap</span></div>
+      <div class="row sb" style="align-items:flex-end"><div><div class="big" data-n="${Math.round(P.total)}">${F(P.total)}</div><div class="d">${F(P.per)} per person</div></div><span class="pill g">Under your ${F(S.cap)} cap</span></div>
       ${S.households.length > 1 ? `<div class="split">${S.households.map(h => `<div><span class="d">${esc(h.id === 'h1' ? 'You' : h.name.replace(/^Your /, '').replace(/’s household/, ''))}</span><b>${F(P.shares[h.id])}</b></div>`).join('')}</div>` : ''}</div>
     ${S.summary ? `<div class="card note"><p class="d" style="color:var(--blue);font-weight:600">In short · written by the ${AI.label}</p><p class="muted" style="color:var(--ink)">${esc(S.summary)}</p></div>` : ''}
     <p class="sec">Getting there</p>
@@ -134,7 +143,7 @@ const V = {
     <div class="card"><div class="row sb c"><span class="muted">Total for ${count()}</span><span class="big" style="font-size:18px">${F(P.total)}</span></div><div class="row sb c"><span class="muted">Per person</span><span><b>${F(P.per)}</b> <span class="pill ${P.over ? 'a' : 'g'}">${P.over ? 'Over cap' : 'Under cap'}</span></span></div>${S.households.map(h => `<hr><div class="row sb c"><span style="font-size:13px">${esc(h.name)} (${h.members.length})</span><b style="font-size:13px">${F(P.shares[h.id])}</b></div>`).join('')}</div>
     <div class="card note"><p class="h" style="color:var(--blue)">What I leave to you</p><p class="muted" style="color:var(--ink)">Paying, confirming the final booking, and messaging the host. I draft, you decide.</p></div></div>` + foot(`Pay your share · ${F(P.shares[S.households[0].id])}`, 'go', 'done'),
 
-  done: () => `<div class="body"><div class="ok-badge">✓</div><p class="big center" style="margin:0">You’re going to ${S.to}</p><p class="muted center">${Engine.date(S, 0)} – ${Engine.date(S, S.days - 1)} · ${plural(count(), 'traveller')} · ${plural(S.households.length, 'household')}</p>
+  done: () => `<div class="body"><div class="ok-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path class="draw" d="M5 12.5l5 5 9-10.5"/></svg></div><p class="big center" style="margin:0">You’re going to ${S.to}</p><p class="muted center">${Engine.date(S, 0)} – ${Engine.date(S, S.days - 1)} · ${plural(count(), 'traveller')} · ${plural(S.households.length, 'household')}</p>
     <div class="card"><p class="sec" style="margin:0">I’ll remind you</p>${P.legs.map(l => `<div class="row"><span class="dot hold">◷</span><div class="grow"><div class="t">${l.opt.name} from ${l.city}</div><div class="d">Leaves ${l.opt.note ? 'the ' + l.opt.note + ' at ' : 'at '}${l.opt.dep}.</div></div></div>`).join('')}${S.moved ? `<div class="row"><span class="dot hold">◷</span><div class="grow"><div class="t">${esc(up(sights()[0]))} moved</div><div class="d">Day 3 morning, before the nap.</div></div></div>` : ''}</div>
     <div class="card"><p class="h">Make it real</p><p class="muted">Nothing was booked here. Use this plan to book each part, then confirm the stay with its owner.</p><button class="cta" data-a="wa">Share on WhatsApp</button><button class="ghost" data-a="copy">${S.toast || 'Copy the itinerary'}</button><div class="row links"><a class="lnk" href="https://www.cleartrip.com/" target="_blank" rel="noopener">Search on Cleartrip</a><a class="lnk" href="${gmap(P.stay)}" target="_blank" rel="noopener">Open the stay in Maps</a></div><p class="warnnote">Fares, times and availability above are estimates. Check them before you pay.</p></div></div>` + foot('Plan another trip', 'reset')
 };
@@ -203,9 +212,17 @@ async function ask(q) {
   try { item.a = await AI.ask(q, facts()) || 'I didn’t get an answer. Try again.'; } catch (e) { aiFailed(e); item.a = 'The AI didn’t answer just now. Try again in a moment.'; }
   S.asking = false; if (S.screen === 'plan') render(false, false);
 }
+let lastScreen = '', ORDER = ['splash', 'onboard', 'home', 'chat', 'brief', 'dates', 'planning', 'over', 'plan', 'stays', 'family', 'booking', 'final', 'done'];
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+function countUp(el) { const target = +el.dataset.n; if (reduce || !target) return; const t0 = performance.now(), d = 700; const step = t => { const k = Math.min(1, (t - t0) / d), e = 1 - Math.pow(1 - k, 3); el.textContent = F(target * e); if (k < 1) requestAnimationFrame(step); }; requestAnimationFrame(step); }
 function render(scroll = true, anim = true) {
   const keep = app.querySelector('.body')?.scrollTop || 0;
+  const changed = S.screen !== lastScreen, back = ORDER.indexOf(S.screen) < ORDER.indexOf(lastScreen);
   app.innerHTML = V[S.screen]();
+  if (!changed) app.classList.remove('in-fwd', 'in-back');
+  if (changed && lastScreen) { app.classList.remove('in-fwd', 'in-back'); void app.offsetWidth; app.classList.add(back ? 'in-back' : 'in-fwd'); }
+  if (changed) app.querySelectorAll('[data-n]').forEach(countUp);
+  lastScreen = S.screen; if (S.justAdded) setTimeout(() => { S.justAdded = ''; }, 50);
   const b = app.querySelector('.body'); if (b) b.scrollTop = scroll ? (S.screen === 'chat' ? b.scrollHeight : 0) : keep;
   if (anim && S.screen === 'planning') animatePlanning();
   if (anim && S.screen === 'booking' && !S.sold) animateBooking();
@@ -226,7 +243,7 @@ function act(a, v, k) {
     if (count() >= 24) { S.formErr = 'That’s the most people I can plan for in one trip.'; return false; }
     const used = names(); let u = n, i = 2; while (used.has(u)) u = n + ' ' + i++; n = u;
     if (newGroup) S.households.push({ id: 'h' + (Math.max(...S.households.map(h => +h.id.slice(1))) + 1), name: newGroup, from: S.households[0].from, members: [{ name: n, age }] }); else S.households.find(h => h.id === hid).members.push({ name: n, age });
-    S.formErr = ''; S.stayId = null; S.key = Date.now(); return n;
+    S.formErr = ''; S.stayId = null; S.key = Date.now(); S.justAdded = n; return n;
   };
   if (a === 'addm') { addTo(v, $('#mn-' + v).value, $('#ma-' + v).value); return render(false, false); }
   if (a === 'addg') { const g = $('#gn').value.trim() || ($('#gm').value.trim() + '’s group'), n = addTo(null, $('#gm').value, $('#ga').value, g); if (n) { const h = S.households[S.households.length - 1], f = $('#gf').value.trim(); if (f) Places.resolve(f).then(r => { if (r) { h.from = r; render(false, false); } else { S.placeErr = `Couldn’t find “${f}” in India.`; render(false, false); } }); } return render(false, false); }
@@ -237,9 +254,9 @@ function act(a, v, k) {
     if (count() >= 24) { S.formErr = 'That’s the most people I can plan for in one trip.'; return render(false, false); }
     const used = names(); let u = n, i = 2; while (used.has(u)) u = n + ' ' + i++; n = u;
     const hid = $('#ph').value; if (hid === 'new') S.households.push({ id: 'h' + (Math.max(...S.households.map(h => +h.id.slice(1))) + 1), name: n + '’s household', from: S.households[0].from, members: [{ name: n, age }] }); else S.households.find(h => h.id === hid).members.push({ name: n, age });
-    if ($('#pacc').checked) S.access.push(n); S.formErr = ''; S.stayId = null; S.thread.push({ who: 'ai', t: `${AI.persona.ack || 'Got it.'} Added ${n} (${age}).` }); S.key = Date.now(); return render();
+    S.justAdded = n; if ($('#pacc').checked) S.access.push(n); S.formErr = ''; S.stayId = null; S.thread.push({ who: 'ai', t: `${AI.persona.ack || 'Got it.'} Added ${n} (${age}).` }); S.key = Date.now(); return render();
   }
-  if (a === 'set') { if (k === 'access') S.access = S.access.includes(v) ? S.access.filter(x => x !== v) : [...S.access, v]; else if (k === 'nap' || k === 'veg') S[k] = v === 'Yes'; else S[k] = v; return render(false); }
+  if (a === 'set') { S.justSel = k + v; if (k === 'access') S.access = S.access.includes(v) ? S.access.filter(x => x !== v) : [...S.access, v]; else if (k === 'nap' || k === 'veg') S[k] = v === 'Yes'; else S[k] = v; return render(false); }
   if (a === 'date') { S.dateChoice = v; return render(false); }
   if (a === 'saveDates') { const r = remote(); S.shift = !!r && S.dateChoice === 'shift'; S.remoteShort = !!r && S.dateChoice === 'keep'; S.stayId = null; S.forceLeg = {}; S.soldDone = false; S.looking = true; go('planning'); const me = S.key; Places.load(S.to).catch(() => null).then(() => { if (S.key !== me) return; S.looking = false; replan(); if (S.screen === 'planning') render(); }); return; }
   if (a === 'fix') { S.fix = +v; return render(false); }
@@ -255,6 +272,8 @@ function act(a, v, k) {
   if (a === 'open') { const x = loadTrips()[+v]; if (!x) return; for (const [n, c] of Object.entries(x.reg)) Places.register(n, c[0], c[1]); S = { ...fresh(), ...x.st, screen: 'plan', looking: false, bk: 0, sold: null }; replan(); go('plan'); Places.load(S.to).then(() => { if (S.screen === 'plan') { replan(); render(false, false); } }); return; }
   if (a === 'wa') return void window.open('https://wa.me/?text=' + encodeURIComponent(itinerary()), '_blank');
   if (a === 'copy') { const done = () => { S.toast = 'Copied'; render(false, false); setTimeout(() => { S.toast = ''; if (S.screen === 'done') render(false, false); }, 1800); }; (navigator.clipboard ? navigator.clipboard.writeText(itinerary()) : Promise.reject()).then(done, () => { S.toast = 'Copy not allowed here'; render(false, false); }); return; }
+  if (a === 'onbNext') { S.onb++; return render(false, false); }
+  if (a === 'onbDone') { try { localStorage.setItem('ctp.onboarded', '1'); } catch (e) { /* storage unavailable */ } S.onb = 0; return go('home'); }
   if (a === 'reset') { S = fresh(); P = null; return go('home'); }
 }
 app.addEventListener('click', e => { const b = e.target.closest('[data-a]'); if (b && !b.disabled) act(b.dataset.a, b.dataset.v, b.dataset.k); });
@@ -292,4 +311,8 @@ document.querySelectorAll('#modes .mode').forEach(btn => btn.onclick = async () 
   bar.hidden = true; mark();
 });
 mark();
-render();
+S.screen = 'splash'; render();
+setTimeout(() => { let seen = false; try { seen = localStorage.getItem('ctp.onboarded') === '1'; } catch (e) { /* storage unavailable */ } go(seen ? 'home' : 'onboard'); }, reduce ? 300 : 1900);
+// swipe on onboarding
+let sx = null; app.addEventListener('pointerdown', e => { if (S.screen === 'onboard') sx = e.clientX; });
+app.addEventListener('pointerup', e => { if (sx === null || S.screen !== 'onboard') return; const dx = e.clientX - sx; sx = null; if (Math.abs(dx) < 40) return; if (dx < 0 && S.onb < ONB.length - 1) { S.onb++; render(false, false); } else if (dx > 0 && S.onb > 0) { S.onb--; render(false, false); } });
