@@ -30,5 +30,5 @@ const DATA = {
     if (!o.length) add('bus-long', 'bus', 'Volvo coach via Delhi', 17, d / 45, 900 + d * 1.2, { note: 'day before' });
     return { km: d, opts: o };
   },
-  stays(to) { const D = DEST[to]; return STAY_T.map((t, i) => ({ ...t, id: 's' + i, name: `${D.areas[i]} ${t.n}`, area: D.areas[i], room: this.r50(t.room * D.mult), far: t.far })); }
+  stays(to) { const real = Places.cache[to]; if (real && real.real) return real.stays; const D = DEST[to]; const AREAS = ['Central', 'Old Town', 'Station Road', 'Lakeside', 'Garden', 'Hill']; return STAY_T.map((t, i) => ({ ...t, id: 's' + i, name: `${D.areas[i] || AREAS[i]} ${t.n}`, area: D.areas[i] || AREAS[i], room: this.r50(t.room * D.mult), far: t.far })); }
 };

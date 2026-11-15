@@ -11,7 +11,8 @@ Open `index.html` in a browser. There is no build step and no server.
 3. The site appears at `https://<your-username>.github.io/<repo-name>/` after a minute.
 
 ## How it works
-- `data.js` generates made-up routes and stays for 9 origin cities and 6 destinations.
+- `data.js` generates estimated fares and times for any pair of Indian places, plus sample stays used as a fallback.
+- `places.js` looks up any Indian place with Nominatim and fetches real stays and sights from OpenStreetMap through the Overpass API (free, no key). Place data © OpenStreetMap contributors.
 - `engine.js` is the rules engine. It reads the trip brief and decides what fits: no early starts for young children, lower berths and step-free stays for anyone who needs them, and nothing above the budget cap.
 - `ai.js` is the AI layer. The model reads the traveller's message into a brief, writes a short plan summary and answers questions about the plan. Its output is validated, and the rules engine still makes every decision.
 - `app.js` draws the screens and runs the flow.
@@ -22,4 +23,4 @@ Open `index.html` in a browser. There is no build step and no server.
 - **No AI:** a scripted reader. Always works, including offline.
 
 ## What a real product would still need
-Live inventory and prices from booking partners, real accounts and sharing between households, payments, and an AI service with a contract behind it. None of that is in this prototype.
+Live fares, seat availability and room prices from booking partners (no free source exists for these, so they are estimates), real accounts and sharing between households, payments, and an AI service with a contract behind it. None of that is in this prototype.

@@ -33,19 +33,17 @@ const AI = {
   parseJson(s) { const a = s.indexOf('{'), b = s.lastIndexOf('}'); if (a < 0 || b < 0) throw new Error('no json'); return JSON.parse(s.slice(a, b + 1)); },
   // Reads the traveller's message into a structured brief. The result is validated before use.
   async readBrief(text, base) {
-    const sys = `You extract trip details from a traveller's message. Reply with JSON only, in this shape: {"destination": one of [${Object.keys(DEST).join(', ')}] or null, "home_city": one of [${Object.keys(CITIES).join(', ')}] or null, "days": number or null, "budget_per_person": number or null, "households": [{"name": string, "city": one of the home cities or null, "members": [{"name": string, "age": number}]}]}. The first household is the writer's own and must include a member named "You". Group people who live together into one household. Guess sensible ages when none are given. Use real names when the writer gives them. Do not add people who are not mentioned.`;
+    const sys = `You extract trip details from a traveller's message. Reply with JSON only, in this shape: {"destination": an Indian place name or null, "home_city": an Indian city name or null, "days": number or null, "budget_per_person": number or null, "households": [{"name": string, "city": an Indian city name or null, "members": [{"name": string, "age": number}]}]}. The first household is the writer's own and must include a member named "You". Group people who live together into one household. Guess sensible ages when none are given. Use real names when the writer gives them. Do not add people who are not mentioned.`;
     const j = this.parseJson(await this.chat(sys, text, { json: true, max: 600 }));
-    const pick = (v, list) => v && list.find(n => n.toLowerCase() === String(v).toLowerCase());
-    const home = pick(j.home_city, Object.keys(CITIES)) || base.home;
     const hs = (j.households || []).filter(h => h && Array.isArray(h.members) && h.members.length).slice(0, 5).map((h, i) => ({
-      id: 'h' + (i + 1), name: String(h.name || 'Household ' + (i + 1)).slice(0, 40), from: i === 0 ? home : (pick(h.city, Object.keys(CITIES)) || home),
+      id: 'h' + (i + 1), name: String(h.name || 'Household ' + (i + 1)).slice(0, 40), from: base.home, fromRaw: String((i === 0 ? j.home_city : h.city) || '').trim().slice(0, 40) || null,
       members: h.members.slice(0, 8).map(m => ({ name: String(m.name || 'Guest').slice(0, 24), age: Math.min(95, Math.max(0, parseInt(m.age) || 30)) }))
     }));
     const count = hs.reduce((a, h) => a + h.members.length, 0);
     if (!hs.length || count < 1 || count > 24) throw new Error('unusable');
     const seen = new Set(); hs.forEach(h => h.members.forEach(m => { let n = m.name, k = 2; while (seen.has(n)) n = m.name + ' ' + k++; seen.add(n); m.name = n; }));
-    const out = { households: hs }, to = pick(j.destination, Object.keys(DEST));
-    if (to) { out.to = to; out.guessedTo = false; }
+    const out = { households: hs }, to = String(j.destination || '').trim().slice(0, 40);
+    if (to) out.toRaw = to;
     if (j.days >= 2 && j.days <= 7) out.days = Math.round(j.days);
     if (j.budget_per_person >= 5000 && j.budget_per_person <= 60000) out.cap = Math.round(j.budget_per_person / 500) * 500;
     return out;

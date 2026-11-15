@@ -32,7 +32,8 @@ const Engine = {
   rooms(h) { return Math.ceil(h.members.length / 3); },
   nights(S, h) { return S.remoteShort && this.isRemote(S, h) ? Math.max(1, S.days - 3) : S.days - 1; },
   fmt(n) { return '₹' + Math.round(n).toLocaleString('en-IN'); },
-  date(S, offset) { const d = new Date(2026, 11, 22 + (S.shift ? 2 : 0) + offset); return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }); },
+  base: (() => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + 30); while (d.getDay() !== 2) d.setDate(d.getDate() + 1); return d; })(),
+  date(S, offset) { const d = new Date(this.base); d.setDate(d.getDate() + (S.shift ? 2 : 0) + offset); return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }); },
 
   plan(S) {
     const steps = [], ppl = this.people(S), legs = [], D = DEST[S.to];
@@ -51,12 +52,13 @@ const Engine = {
     }
     steps.push({ t: `Checked ${seen} trains, buses and flights to ${S.to}` });
     if (cutEarly) steps.push({ t: `Removed ${cutEarly} starts before 8 am`, who: smallKids.map(k => k.name).join(', ') });
-    let stays = DATA.stays(S.to);
-    if (access.length) { const b = stays.length; stays = stays.filter(s => s.groundFloor || s.lift); steps.push({ t: `Kept ${stays.length} of ${b} stays with step-free rooms`, who: access.map(a => a.name).join(', ') }); }
+    let stays = DATA.stays(S.to); const real = !!(stays[0] && stays[0].real);
+    steps.push({ t: real ? `Looked up ${stays.length} real stays near ${S.to} on OpenStreetMap` : `Used sample stays near ${S.to}: live listings weren’t reachable` });
+    if (access.length) { const b = stays.length; stays = stays.filter(s => s.groundFloor || s.lift || s.stepUnknown); { const unk = stays.filter(x => x.stepUnknown).length; steps.push({ t: unk ? `Kept ${stays.length} of ${b} stays: ${stays.length - unk} listed as step-free, ${unk} not listed (ask them)` : `Kept ${stays.length} of ${b} stays with step-free rooms`, who: access.map(a => a.name).join(', ') }); } }
     const quietWanted = S.vibe !== 'Party';
-    const score = s => s.rating * 10 + Math.min(s.hostYears, 10) + Math.log10(s.reviews) * 4 + (s.groundFloor ? 4 : 0) + (quietWanted === s.quiet ? 6 : -6) + (smallKids.length && s.kidsPool ? 4 : 0) + (S.veg && s.veg ? 3 : 0) - s.far / 6 - s.room / 400;
+    const score = s => (s.rating ? s.rating * 10 : 40 + (s.stars || 3) * 2) + (s.hostYears ? Math.min(s.hostYears, 10) : 0) + (s.reviews ? Math.log10(s.reviews) * 4 : 0) + (s.groundFloor ? 4 : 0) - (s.stepUnknown && access.length ? 3 : 0) + (s.quiet === undefined ? 0 : quietWanted === s.quiet ? 6 : -6) + (smallKids.length && s.kidsPool ? 4 : 0) + (S.veg && s.veg ? 3 : 0) - s.far / 6 - s.room / 400;
     stays = stays.map(s => ({ ...s, score: score(s), reasons: this.reasons(s, S, access, smallKids, D) })).sort((a, b) => b.score - a.score).slice(0, 3);
-    steps.push({ t: `Ranked stays by reviews, host tenure and ${quietWanted ? 'quiet' : 'nightlife'}; shortlisted ${stays.length}` });
+    steps.push({ t: `Ranked stays by ${real ? 'accessibility, facilities and distance' : 'reviews, host tenure and ' + (quietWanted ? 'quiet' : 'nightlife')}; shortlisted ${stays.length}` });
     const stay = stays.find(s => s.id === S.stayId) || stays[0];
     const pp = DATA.perPerson, shares = {}; let total = 0;
     for (const h of S.households) {
@@ -72,6 +74,12 @@ const Engine = {
 
   reasons(s, S, access, kids, D) {
     const r = [];
+    if (s.real) {
+      if (access.length) r.push(s.groundFloor ? `Listed as wheelchair accessible · for ${access.map(a => a.name).join(' and ')}` : `Step-free access isn’t listed · ask the stay before booking`);
+      if (kids.length && s.kidsPool) r.push(`Has a swimming pool · check it is shallow for ${kids.map(k => k.name).join(' and ')}`);
+      if (s.stars) r.push(`${s.stars}-star listing`);
+      r.push(`About ${s.far} min from ${D.centre}`); r.push('Real listing from OpenStreetMap: no reviews or live price in this data'); return r;
+    }
     if (access.length) r.push(s.groundFloor ? `Ground-floor rooms, no steps · for ${access.map(a => a.name).join(' and ')}` : `Upper floor with a lift · for ${access.map(a => a.name).join(' and ')}`);
     if (kids.length && s.kidsPool) r.push(`Shallow kids’ pool · for ${kids.map(k => k.name).join(' and ')}`);
     if (S.veg && s.veg) r.push('Pure-veg kitchen');
