@@ -17,10 +17,12 @@ Open `index.html` in a browser. There is no build step and no server.
 - `ai.js` is the AI layer. The model reads the traveller's message into a brief, writes a short plan summary and answers questions about the plan. Its output is validated, and the rules engine still makes every decision.
 - `app.js` draws the screens and runs the flow.
 
-## The three AI modes
-- **Free cloud AI (default):** calls Pollinations, a free public AI service that needs no key. Messages are sent to that service, so don't type private details. It can be slow or unavailable; the app then falls back to the scripted reader.
-- **On-device AI:** loads a small open model with WebLLM and runs it in the tab through WebGPU. Nothing leaves the device. It needs a recent Chrome or Edge on a laptop and a one-time download of roughly 1 GB.
-- **No AI:** a scripted reader. Always works, including offline.
+## AI choices and the planner's personality
+- **On-device AI:** loads a small open model with WebLLM and runs it in the tab through WebGPU. Private, no key, no limits. Needs a recent Chrome or Edge on a laptop and a one-time download of roughly 1 GB.
+- **Your own free key:** paste a key from Groq, Google Gemini, OpenRouter or any OpenAI-compatible service. The key is stored only in your browser (localStorage) and sent only to that service. Check each provider's current free-tier terms.
+- **Keyless public AI:** needs no setup but has a free-use limit and often refuses (HTTP 402). The app then falls back to the scripted reader.
+- **No AI:** a scripted reader that also understands simple edits ("add my sister Riya, 30"). Always works, including offline.
+- **Personality:** choose Maya (warm), Arjun (brisk), Dadi (gentle) or write your own. It changes the greeting, the plan summary and the answers to your questions.
 
 ## What a real product would still need
 Live fares, seat availability and room prices from booking partners (no free source exists for these, so they are estimates), real accounts and sharing between households, payments, and an AI service with a contract behind it. None of that is in this prototype.

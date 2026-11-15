@@ -1,7 +1,7 @@
 const $ = s => document.querySelector(s), app = $('#app');
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const F = n => Engine.fmt(n), wait = ms => new Promise(r => setTimeout(r, ms));
-const fresh = () => ({ screen: 'home', text: '', to: 'Goa', guessedTo: false, households: [], days: 5, cap: 15000, access: [], vibe: 'Relaxed', veg: false, nap: true, shift: false, remoteShort: false, dateChoice: 'shift', stayId: null, extra: 'all', forceLeg: {}, moved: false, applied: {}, bk: 0, sold: null, soldDone: false, fix: 0, reader: '', summary: '', busy: false, qa: [], asking: false, looking: false, placeErr: '', toast: '' });
+const fresh = () => ({ screen: 'home', text: '', to: 'Goa', guessedTo: false, households: [], days: 5, cap: 15000, access: [], vibe: 'Relaxed', veg: false, nap: true, shift: false, remoteShort: false, dateChoice: 'shift', stayId: null, extra: 'all', forceLeg: {}, moved: false, applied: {}, bk: 0, sold: null, soldDone: false, fix: 0, reader: '', summary: '', busy: false, qa: [], asking: false, looking: false, placeErr: '', toast: '', thread: [], formErr: '' });
 let S = fresh(), P = null, run = 0;
 const BACK = { chat: 'home', brief: 'chat', dates: 'brief', plan: 'dates', over: 'dates', stays: 'plan', family: 'stays', booking: 'stays', final: 'booking' };
 const go = s => { S.screen = s; run++; render(); };
@@ -23,7 +23,8 @@ const TRIPS = 'ctp.trips';
 const loadTrips = () => { try { return JSON.parse(localStorage.getItem(TRIPS) || '[]'); } catch (e) { return []; } };
 const saveTrip = () => { try { const t = loadTrips().filter(x => x.key !== S.key); t.unshift({ key: S.key, to: S.to, label: `${Engine.date(S, 0)} · ${count()} travellers`, per: P.per, st: S, reg: Object.fromEntries([S.to, ...S.households.map(h => h.from)].map(n => [n, CITIES[n] || DEST[n].at])) }); localStorage.setItem(TRIPS, JSON.stringify(t.slice(0, 5))); } catch (e) { /* storage unavailable */ } };
 const replan = () => { P = Engine.plan(S); return P; };
-const aiChip = () => `<div class="aichip ${AI.ready ? 'on' : ''}"><i></i>${AI.ready ? 'Using the ' + AI.label : 'AI is off · using the scripted reader'}</div>`;
+const aiChip = () => `<div class="aichip ${AI.ready ? 'on' : ''}"><i></i>${esc(AI.persona.name)} · ${AI.ready ? 'using the ' + AI.label : 'AI is off, using the scripted reader. Choose an AI in the panel.'}</div>`;
+const greet = () => AI.persona.greet || `Hi, I’m ${AI.persona.name}. Tell me about the trip: where from, where to, how long, and who’s coming.`;
 const facts = () => `Trip: ${S.days} days in ${S.to}, ${Engine.date(S, 0)} to ${Engine.date(S, S.days - 1)}. Travellers: ${S.households.map(h => `${h.name} from ${h.from}: ${h.members.map(m => m.name + ' (' + m.age + ')').join(', ')}`).join('; ')}. Vibe wanted: ${S.vibe}. Step-free access needed by: ${S.access.join(', ') || 'no one'}. Pure-veg kitchen needed: ${S.veg ? 'yes' : 'no'}. Budget cap per person: ${S.cap} rupees. Plan cost: ${Math.round(P.per)} rupees per person, ${Math.round(P.total)} in total. Transport: ${P.legs.map(l => `${l.opt.name} from ${l.city} leaving ${l.opt.dep}, arriving ${l.opt.arr}, ${l.opt.price} rupees each way, chosen because ${l.why}; other options were ${l.all.filter(o => o.id !== l.opt.id).map(o => o.name + ' at ' + o.dep + ' for ' + o.price).join(', ') || 'none'}`).join('. ')}. Shortlisted stays: ${P.stays.map(s => `${s.name} in ${s.area}, ${s.room} rupees a room a night, rated ${s.rating} from ${s.reviews} reviews, host for ${s.hostYears} years, ${s.reasons.join(', ')}`).join(' | ')}. Current stay: ${P.stay.name}. Sights planned: ${sights().join(', ')}; optional paid activity: ${D().extra} at ${DATA.perPerson.extra} rupees per person. All data is simulated.`;
 
 const V = {
@@ -36,15 +37,17 @@ const V = {
   </div></div><div class="nav">${[['home', 'Home', 1], ['trips', 'My Trips'], ['work', 'Work'], ['user', 'Account'], ['offer', 'Offers']].map(([i, l, a]) => `<span class="${a ? 'a' : ''}">${svg(I[i], a ? '#fff' : '#9A9AA0')}${l}</span>`).join('')}</div>`,
 
   chat: () => {
+    const p = AI.persona, say = h => `<div class="msg"><div class="av">${esc(p.name.charAt(0).toUpperCase())}</div><div class="bub">${h}</div></div>`;
     const ex = ['Goa for 5 days from Bengaluru with my parents, my 4-year-old and my brother’s family from Delhi', '4 days in Jaipur from Mumbai with my wife and 6 friends, under ₹12,000 each', 'A week in Kerala from Chennai with my grandparents and my 3-year-old'];
-    let b = `<div class="msg"><div class="av">✦</div><div class="bub">Tell me about the trip in your own words: where from, where to, how long, and who’s coming.</div></div>`;
-    if (!S.text) b += `<p class="sec">Try one of these</p><div class="chips">${ex.map(e => `<button class="chip" data-a="example" data-v="${esc(e)}">${esc(e)}</button>`).join('')}</div>`;
+    let b = say(esc(greet()));
+    if (!S.thread.length) b += `<p class="sec">Try one of these</p><div class="chips">${ex.map(e => `<button class="chip" data-a="example" data-v="${esc(e)}">${esc(e)}</button>`).join('')}</div>`;
     else {
-      b += `<div class="msg me"><div class="bub">${esc(S.text)}</div></div>`;
-      if (S.busy) b += `<div class="msg"><div class="av">✦</div><div class="bub"><div class="row c"><span class="dot spin"></span>Reading your message…</div></div></div>`;
-      else b += `<div class="msg"><div class="av">✦</div><div class="bub">Got it: <b>${S.days} days in ${S.to}</b>${S.guessedTo ? ' (you didn’t name a place, so I’ve assumed Goa; change it on the next screen)' : ''}. Here’s who I have:${S.households.map(h => `<div><div class="d">${esc(h.name)} · from ${h.from}</div><div class="chips" style="margin-top:6px">${h.members.map(m => `<span class="chip plain">${esc(m.name)} · ${m.age}</span>`).join('')}</div></div>`).join('')}<b>${plural(count(), 'traveller')} · ${plural(S.households.length, 'household')}</b></div></div><p class="d center">${S.reader}</p>`;
+      for (const m of S.thread) b += m.who === 'me' ? `<div class="msg me"><div class="bub">${esc(m.t)}</div></div>` : say(esc(m.t));
+      if (S.busy) b += say(`<div class="row c"><span class="dot spin"></span>Reading your message…</div>`);
+      else b += say(`<span>${esc(p.ack || 'Got it.')} <b>${S.days} days in ${S.to}</b>${S.guessedTo ? ' (you didn’t name a place, so I’ve assumed Goa; change it on the next screen)' : ''}. Here’s who is going:</span>${S.households.map(h => `<div><div class="d">${esc(h.name)} · from ${h.from}</div><div class="chips" style="margin-top:6px">${h.members.map(m => `<span class="chip plain">${esc(m.name)} · ${m.age}<button class="x" data-a="rm" data-v="${h.id}" data-k="${esc(m.name)}" aria-label="Remove ${esc(m.name)}">×</button></span>`).join('')}</div></div>`).join('')}<b>${plural(count(), 'traveller')} · ${plural(S.households.length, 'household')}</b>
+        <div class="addp"><p class="d">Add someone, or type a change below (like “add my sister Riya, 30”).</p><div class="row"><input id="pn" placeholder="Name" maxlength="24"><input id="pa" type="number" inputmode="numeric" min="0" max="95" placeholder="Age" style="max-width:72px"></div><select id="ph">${S.households.map(h => `<option value="${h.id}">${esc(h.name)}</option>`).join('')}<option value="new">A new household</option></select><label class="chk"><input type="checkbox" id="pacc"> Needs step-free access</label>${S.formErr ? `<p class="err">${esc(S.formErr)}</p>` : ''}<button class="sm k" data-a="addp">Add person</button></div>`) + `<p class="d center">${S.reader}</p>`;
     }
-    return topBar('AI trip planner') + `<div class="body">${aiChip()}${b}</div><div class="foot"><div class="field"><textarea id="msg" placeholder="${S.text ? 'Add or correct anything…' : 'Type your trip…'}"></textarea><button class="send" data-a="send" aria-label="Send">↑</button></div>${S.text && !S.busy ? `<button class="cta" data-a="go" data-v="brief">Looks right, continue</button>` : ''}</div>`;
+    return topBar('AI trip planner') + `<div class="body">${aiChip()}${b}</div><div class="foot"><div class="field"><textarea id="msg" placeholder="${S.thread.length ? 'Add or change anything…' : 'Type your trip…'}"></textarea><button class="send" data-a="send" aria-label="Send">↑</button></div>${S.thread.length && !S.busy ? `<button class="cta" data-a="go" data-v="brief">Looks right, continue</button>` : ''}</div>`;
   },
 
   brief: () => topBar('Trip brief') + `<div class="body"><p class="muted">Everyone sees this brief, so expectations match before I plan.</p>
@@ -149,9 +152,9 @@ async function animateBooking() {
     render(false, false);
   }
 }
-function aiFailed(e) { AI.lastError = e.message || 'no reply'; if (AI.mode === 'cloud') { $('#aiNote').textContent = 'The free cloud AI did not answer just now (' + AI.lastError + '). The scripted reader filled in. It will be tried again on your next message.'; } }
+function aiFailed(e) { AI.lastError = e.message || 'no reply'; $('#aiNote').textContent = 'The AI didn’t answer just now (' + AI.lastError + '). The scripted reader filled in, and the AI will be tried again on your next message.'; }
 async function read(text) {
-  S.text = text; S.busy = true; S.summary = ''; S.qa = []; render();
+  S.text = text; S.thread = [{ who: 'me', t: text }]; S.formErr = ''; S.busy = true; S.summary = ''; S.qa = []; render();
   const base = Engine.parse(text); let got = null;
   if (AI.ready) { try { got = await AI.readBrief(text, base); $('#aiNote').textContent = ''; } catch (e) { got = null; aiFailed(e); } } else await wait(600);
   Object.assign(S, { households: base.households, days: base.days, cap: base.cap, to: base.to, guessedTo: base.guessedTo }, got || {});
@@ -160,6 +163,26 @@ async function read(text) {
   S.reader = got ? 'Read by the ' + AI.label : AI.ready ? 'The AI didn’t give a usable answer, so the scripted reader was used' : 'Read by the scripted reader · AI is off';
   S.access = elders().slice(0, 1).map(e => e.name); S.veg = elders().length > 0; S.busy = false; S.stayId = null; S.forceLeg = {}; S.soldDone = false; S.applied = {}; S.extra = 'all'; S.moved = false;
   render();
+}
+const names = () => new Set(Engine.people(S).map(p => p.name));
+async function refine(t) {
+  const before = names(), beforeDays = S.days, beforeCap = S.cap; S.thread.push({ who: 'me', t }); S.busy = true; S.summary = ''; S.formErr = ''; render();
+  let ok = false, msg = '';
+  if (AI.ready) {
+    try {
+      const cur = { destination: S.to, home_city: S.households[0].from, days: S.days, budget_per_person: S.cap, households: S.households.map(h => ({ name: h.name, city: h.from, members: h.members })) };
+      const got = await AI.readBrief(t, null, cur);
+      S.households = got.households; if (got.days) S.days = got.days; if (got.cap) S.cap = got.cap;
+      if (got.toRaw) { const n = await Places.resolve(got.toRaw); if (n) { S.to = n; S.guessedTo = false; } }
+      for (const h of S.households) if (h.fromRaw) { const n = await Places.resolve(h.fromRaw); h.from = n || S.households[0].from; }
+      ok = true;
+    } catch (e) { aiFailed(e); }
+  }
+  if (!ok) { const r = Engine.edit(S, t); ok = !r.msg; msg = r.msg || ''; }
+  const after = names(), add = [...after].filter(n => !before.has(n)), gone = [...before].filter(n => !after.has(n));
+  S.access = S.access.filter(n => after.has(n)).concat(Engine.people(S).filter(p => add.includes(p.name) && p.age >= 65).map(p => p.name));
+  if (ok) { const bits = []; if (add.length) bits.push('Added ' + add.join(', ')); if (gone.length) bits.push('Removed ' + gone.join(', ')); if (S.days !== beforeDays) bits.push(`Now ${S.days} days`); if (S.cap !== beforeCap) bits.push(`Budget ${F(S.cap)} each`); msg = (AI.persona.ack || 'Got it.') + ' ' + (bits.length ? bits.join('. ') + '.' : 'No change was needed.'); }
+  S.thread.push({ who: 'ai', t: msg }); S.busy = false; S.stayId = null; S.forceLeg = {}; S.key = Date.now(); render();
 }
 async function ask(q) {
   if (!q || S.asking) return; S.asking = true; const item = { q, a: null }; S.qa.push(item); render(false, false);
@@ -181,7 +204,16 @@ function act(a, v, k) {
   if (a === 'start') return go('chat');
   if (a === 'go') { if (['stays', 'booking', 'final', 'done'].includes(v)) replan(); if (v === 'done') saveTrip(); if (v === 'booking') { S.bk = 0; S.sold = null; } return go(v); }
   if (a === 'example') return read(v);
-  if (a === 'send') { const t = $('#msg').value.trim(); if (t) read(S.text && S.households.length ? S.text + '. ' + t : t); return; }
+  if (a === 'send') { const t = $('#msg').value.trim(); if (!t) return; return S.households.length ? refine(t) : read(t); }
+  if (a === 'rm') { const h = S.households.find(x => x.id === v); if (!h) return; if (count() <= 1) { S.formErr = 'At least one traveller has to stay.'; return render(false, false); } h.members = h.members.filter(m => m.name !== k); S.access = S.access.filter(n => n !== k); if (!h.members.length) S.households = S.households.filter(x => x !== h); S.stayId = null; return render(false, false); }
+  if (a === 'addp') {
+    let n = $('#pn').value.trim().slice(0, 24); const age = parseInt($('#pa').value);
+    if (!n || isNaN(age) || age < 0 || age > 95) { S.formErr = 'Enter a name and an age from 0 to 95.'; return render(false, false); }
+    if (count() >= 24) { S.formErr = 'That’s the most people I can plan for in one trip.'; return render(false, false); }
+    const used = names(); let u = n, i = 2; while (used.has(u)) u = n + ' ' + i++; n = u;
+    const hid = $('#ph').value; if (hid === 'new') S.households.push({ id: 'h' + (Math.max(...S.households.map(h => +h.id.slice(1))) + 1), name: n + '’s household', from: S.households[0].from, members: [{ name: n, age }] }); else S.households.find(h => h.id === hid).members.push({ name: n, age });
+    if ($('#pacc').checked) S.access.push(n); S.formErr = ''; S.stayId = null; S.thread.push({ who: 'ai', t: `${AI.persona.ack || 'Got it.'} Added ${n} (${age}).` }); S.key = Date.now(); return render();
+  }
   if (a === 'set') { if (k === 'access') S.access = S.access.includes(v) ? S.access.filter(x => x !== v) : [...S.access, v]; else if (k === 'nap' || k === 'veg') S[k] = v === 'Yes'; else S[k] = v; return render(false); }
   if (a === 'date') { S.dateChoice = v; return render(false); }
   if (a === 'saveDates') { const r = remote(); S.shift = !!r && S.dateChoice === 'shift'; S.remoteShort = !!r && S.dateChoice === 'keep'; S.stayId = null; S.forceLeg = {}; S.soldDone = false; S.looking = true; go('planning'); const me = S.key; Places.load(S.to).catch(() => null).then(() => { if (S.key !== me) return; S.looking = false; replan(); if (S.screen === 'planning') render(); }); return; }
@@ -203,13 +235,36 @@ function act(a, v, k) {
 app.addEventListener('click', e => { const b = e.target.closest('[data-a]'); if (b && !b.disabled) act(b.dataset.a, b.dataset.v, b.dataset.k); });
 app.addEventListener('change', async e => { const el = e.target.closest('[data-sel]'); if (!el) return; const k = el.dataset.sel; S.placeErr = ''; if (k === 'days') S.days = +el.value; else { const name = await Places.resolve(el.value); if (!name) S.placeErr = `Couldn’t find “${el.value}” in India. Pick from the list or try a nearby city.`; else if (k === 'to') { S.to = name; S.guessedTo = false; } else S.households.find(h => h.id === el.dataset.h).from = name; } S.stayId = null; S.forceLeg = {}; render(false, false); });
 $('#reset').onclick = () => act('reset');
-document.querySelectorAll('.mode').forEach(btn => btn.onclick = async () => {
-  const m = btn.dataset.mode, st = $('#aiState'), bar = $('#aiBar'), note = $('#aiNote');
-  const mark = () => { document.querySelectorAll('.mode').forEach(b => b.classList.toggle('sel', b.dataset.mode === AI.mode)); st.textContent = AI.mode === 'cloud' ? 'Cloud AI' : AI.mode === 'device' ? 'On-device' : 'Off'; st.className = 'tag ' + (AI.mode === 'off' ? '' : 'on'); render(false, false); };
-  if (m !== 'device' || AI.engine) { AI.mode = m; note.textContent = ''; return mark(); }
-  st.textContent = 'Loading'; st.className = 'tag busy'; bar.hidden = false;
+
+// ---- side panel: planner personality and AI choice ----
+const drawPersonas = () => {
+  const cur = AI.persona.id;
+  $('#personas').innerHTML = [...PERSONAS, { id: 'custom', name: 'Your own', tag: 'Name it and say how it talks' }].map(p => `<button class="mode ${cur === p.id ? 'sel' : ''}" data-p="${p.id}"><b>${esc(p.name)}</b><span>${esc(p.tag)}</span></button>`).join('');
+  $('#customP').hidden = cur !== 'custom'; if (cur === 'custom') { $('#cpn').value = AI.persona.name; $('#cps').value = AI.persona.style; }
+};
+const customPersona = () => ({ id: 'custom', name: $('#cpn').value.trim().slice(0, 20) || 'Kavya', style: $('#cps').value.trim().slice(0, 200) || 'Cheerful and encouraging. Keeps it short.', greet: null, ack: 'Got it.' });
+$('#personas').onclick = e => { const b = e.target.closest('[data-p]'); if (!b) return; AI.setPersona(b.dataset.p === 'custom' ? customPersona() : { ...PERSONAS.find(x => x.id === b.dataset.p) }); drawPersonas(); render(false, false); };
+['#cpn', '#cps'].forEach(i => $(i).onchange = () => { AI.setPersona(customPersona()); render(false, false); });
+drawPersonas();
+
+const stateTag = () => { const st = $('#aiState'); st.textContent = { device: 'On-device', key: AI.cfg.key ? 'Your key' : 'Needs key', cloud: 'Keyless', off: 'Off' }[AI.mode]; st.className = 'tag ' + (AI.mode === 'off' ? '' : AI.ready ? 'on' : 'busy'); };
+const mark = () => { document.querySelectorAll('#modes .mode').forEach(b => b.classList.toggle('sel', b.dataset.mode === AI.mode)); $('#keyForm').hidden = AI.mode !== 'key'; stateTag(); render(false, false); };
+const fillKey = () => { $('#kp').value = AI.cfg.preset; $('#kk').value = AI.cfg.key; $('#kb').value = AI.cfg.base; $('#km').value = AI.cfg.model; $('#kb').parentElement.hidden = AI.cfg.preset !== 'Custom'; $('#khelp').textContent = PRESETS[AI.cfg.preset].help + '. The key is kept only in this browser.'; };
+$('#kp').innerHTML = Object.keys(PRESETS).map(n => `<option>${n}</option>`).join(''); fillKey();
+$('#kp').onchange = () => { const p = PRESETS[$('#kp').value]; AI.cfg = { ...AI.cfg, preset: $('#kp').value, base: p.base, model: p.model }; fillKey(); };
+$('#kt').onclick = async () => {
+  const note = $('#aiNote'); AI.cfg = { preset: $('#kp').value, key: $('#kk').value.trim(), base: $('#kb').value.trim() || PRESETS[$('#kp').value].base, model: $('#km').value.trim() || PRESETS[$('#kp').value].model }; AI.saveCfg(); AI.mode = 'key';
+  if (!AI.cfg.key || !AI.cfg.base) { note.textContent = 'Paste a key first.'; return mark(); }
+  note.textContent = 'Testing…'; try { const r = await AI.chat('Reply with the single word OK.', 'ping', { max: 8 }); note.textContent = r ? 'Works. The service replied: ' + r.slice(0, 40) : 'The service answered with nothing. Check the model name.'; } catch (e) { note.textContent = 'That didn’t work: ' + (e.name === 'AbortError' ? 'it took too long' : e.message === 'Failed to fetch' ? 'the browser was blocked from reaching it (check the web address, or the service may not allow browser use)' : e.message); }
+  mark();
+};
+document.querySelectorAll('#modes .mode').forEach(btn => btn.onclick = async () => {
+  const m = btn.dataset.mode, bar = $('#aiBar'), note = $('#aiNote'); note.textContent = '';
+  if (m !== 'device' || AI.engine) { AI.mode = m; if (m === 'cloud') note.textContent = 'This service has a free-use limit and may refuse. If it does, the scripted reader fills in.'; return mark(); }
+  const st = $('#aiState'); st.textContent = 'Loading'; st.className = 'tag busy'; bar.hidden = false;
   try { await AI.loadDevice((p, t) => { $('#aiFill').style.width = Math.round(p * 100) + '%'; note.textContent = t || 'Loading the model…'; }); AI.mode = 'device'; note.textContent = 'Model: ' + AI.deviceModel + '. Nothing leaves this tab.'; }
   catch (err) { note.textContent = 'Could not start the on-device AI: ' + err.message; }
   bar.hidden = true; mark();
 });
+mark();
 render();

@@ -27,6 +27,38 @@ const Engine = {
     return { to: dests[0] || 'Goa', guessedTo: !dests.length, home, remote, days, cap, households: hs };
   },
 
+
+  // Scripted edits for follow-up messages when no AI is available. Returns a short message if it could not act.
+  edit(S, text) {
+    const t = text.trim(), low = t.toLowerCase(), before = JSON.stringify(S.households) + S.days + S.cap;
+    const REL = { wife: 33, husband: 35, partner: 33, son: 8, daughter: 8, kid: 8, child: 8, mother: 62, mom: 62, father: 65, dad: 65, brother: 32, sister: 32, friend: 30, cousin: 28, uncle: 55, aunt: 52, grandmother: 72, grandfather: 75, grandma: 72, grandpa: 75 };
+    const STOP = new Set(['a', 'an', 'my', 'member', 'person', 'someone', 'another', 'one', 'more', 'to', 'the', 'i', 'can', 'also', 'please', 'age', 'aged']);
+    const used = () => new Set(this.people(S).map(p => p.name.toLowerCase()));
+    const uniq = n => { let x = n, k = 2; while (used().has(x.toLowerCase())) x = n + ' ' + k++; return x; };
+    const m = t.match(/\b(?:add|include|bring)\s+(?:in\s+)?(?:my\s+|a\s+|an\s+)?(?:(wife|husband|partner|son|daughter|kid|child|mother|mom|father|dad|brother|sister|friend|cousin|uncle|aunt|grandmother|grandfather|grandma|grandpa)\s+)?([A-Za-z]+)?[\s,]*(?:aged?\s*)?(\d{1,2})?\b/i);
+    if (m && /\b(add|include|bring)\b/i.test(t)) {
+      let rel = (m[1] || '').toLowerCase(), name = m[2] && !STOP.has(m[2].toLowerCase()) && !REL[m[2].toLowerCase()] ? m[2] : '';
+      if (!rel && m[2] && REL[m[2].toLowerCase()]) rel = m[2].toLowerCase();
+      if (!name && !rel) return { msg: 'Who should I add? Say a name and age, like “add my sister Riya, 30”, or use the form below.' };
+      name = this.cap(name || rel); const age = m[3] ? Math.min(95, +m[3]) : (REL[rel] || 30);
+      if (this.people(S).length >= 24) return { msg: 'That’s the most people I can plan for in one trip.' };
+      const eld = /^(mother|mom|father|dad|grandmother|grandfather|grandma|grandpa)$/.test(rel), sib = /^(brother|sister|cousin|uncle|aunt)$/.test(rel);
+      let h = eld ? S.households.find(x => x.name === 'Your parents' || x.name === 'Grandparents') : S.households[0];
+      if (eld && !h) { h = { id: 'h' + (S.households.length + 1), name: /grand/.test(rel) ? 'Grandparents' : 'Your parents', from: S.households[0].from, members: [] }; S.households.push(h); }
+      if (sib) { h = { id: 'h' + (S.households.length + 1), name: name + '’s household', from: S.households[0].from, members: [] }; S.households.push(h); }
+      h.members.push({ name: uniq(name), age });
+    } else if (/\b(remove|delete|drop)\b/i.test(t)) {
+      const w = (t.match(/\b(?:remove|delete|drop)\s+(?:my\s+)?([A-Za-z]+)/i) || [])[1];
+      const h = S.households.find(x => x.members.some(p => p.name.toLowerCase() === (w || '').toLowerCase()));
+      if (!h) return { msg: 'I couldn’t find that person. Use the × next to a name below.' };
+      if (this.people(S).length <= 1) return { msg: 'At least one traveller has to stay.' };
+      h.members = h.members.filter(p => p.name.toLowerCase() !== w.toLowerCase()); if (!h.members.length && h.id !== 'h1') S.households = S.households.filter(x => x !== h);
+    }
+    const d = low.match(/(\d+)\s*-?\s*(day|night)/); if (d && +d[1] >= 2 && +d[1] <= 7) S.days = +d[1];
+    const b = low.match(/(?:₹|rs\.?|inr|budget\D{0,12})\s*([\d,.]+)\s*(k)?/); if (b) { const v = parseFloat(b[1].replace(/,/g, '')) * (b[2] ? 1000 : 1); if (v >= 5000 && v <= 60000) S.cap = Math.round(v / 500) * 500; }
+    return JSON.stringify(S.households) + S.days + S.cap !== before ? {} : { msg: 'I couldn’t tell what to change. Try “add my sister Riya, 30”, “remove Riya”, “make it 6 days”, or use the form below.' };
+  },
+
   people(S) { return S.households.flatMap(h => h.members.map(m => ({ ...m, h: h.id }))); },
   isRemote(S, h) { return h.from !== S.households[0].from; },
   rooms(h) { return Math.ceil(h.members.length / 3); },

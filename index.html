@@ -16,11 +16,20 @@
     <h1>AI trip planner</h1>
     <p class="lede">One trip that works for every person, and that every household agrees to. Describe a trip in your own words, pick where from and where to, and ask the planner anything about the result.</p>
     <section class="ai-box">
-      <div class="ai-head"><strong>Which AI reads and explains</strong><span id="aiState" class="tag on">Cloud AI</span></div>
-      <div class="modes">
-        <button class="mode sel" data-mode="cloud"><b>Free cloud AI</b><span>Instant. Your message goes to a free public AI service, so don’t type private details.</span></button>
-        <button class="mode" data-mode="device"><b>On-device AI</b><span>Private. Runs in this tab. Needs Chrome or Edge on a laptop and a one-time download of about 1 GB.</span></button>
-        <button class="mode" data-mode="off"><b>No AI</b><span>A scripted reader. Always works, even offline.</span></button>
+      <div class="ai-head"><strong>Your planner’s personality</strong></div>
+      <div class="modes" id="personas"></div>
+      <div id="customP" class="custom" hidden><input id="cpn" placeholder="Name, e.g. Kavya" maxlength="20"><input id="cps" placeholder="How she talks, e.g. cheerful, loves street food, keeps it short" maxlength="200"></div>
+    </section>
+    <section class="ai-box">
+      <div class="ai-head"><strong>Which AI reads and explains</strong><span id="aiState" class="tag">Off</span></div>
+      <div class="modes" id="modes">
+        <button class="mode" data-mode="device"><b>On-device AI</b><span>Private and unlimited. Runs in this tab on Chrome or Edge on a laptop. One-time download of about 1 GB.</span></button>
+        <button class="mode" data-mode="key"><b>Your own free key</b><span>Paste a free key from Groq, Google Gemini or OpenRouter. Fast, and kept only in this browser.</span></button>
+        <button class="mode" data-mode="cloud"><b>Keyless public AI</b><span>No setup, but it has a free-use limit and often refuses. The scripted reader fills in.</span></button>
+        <button class="mode sel" data-mode="off"><b>No AI</b><span>A scripted reader. Always works, even offline.</span></button>
+      </div>
+      <div id="keyForm" class="custom" hidden>
+        <select id="kp"></select><input id="kk" type="password" placeholder="Paste your key" autocomplete="off"><label hidden>Web address<input id="kb" placeholder="https://…/v1"></label><input id="km" placeholder="Model name"><p id="khelp" class="ai-note"></p><button id="kt" class="ghost">Save and test</button>
       </div>
       <div class="bar" hidden id="aiBar"><i id="aiFill"></i></div>
       <p id="aiNote" class="ai-note"></p>
