@@ -14,34 +14,36 @@
   <aside class="panel">
     <p class="over">Design concept · student project</p>
     <h1>AI trip planner</h1>
-    <p class="lede">One trip that works for every person, and that every household agrees to. Describe a trip in your own words, pick where from and where to, and ask the planner anything about the result.</p>
+    <p class="lede">One trip that works for every person, and that every household agrees to.</p>
     <section class="ai-box">
-      <div class="ai-head"><strong>Your planner’s personality</strong></div>
-      <div class="modes" id="personas"></div>
-      <div id="customP" class="custom" hidden><input id="cpn" placeholder="Name, e.g. Kavya" maxlength="20"><input id="cps" placeholder="How she talks, e.g. cheerful, loves street food, keeps it short" maxlength="200"></div>
+      <div class="ai-head"><strong>Planner personality</strong></div>
+      <div class="modes seg" id="personas"></div>
+      <p id="pDesc" class="ai-note"></p>
+      <div id="customP" class="custom" hidden><input id="cpn" placeholder="Name, e.g. Kavya" maxlength="20"><input id="cps" placeholder="How it talks, e.g. cheerful, keeps it short" maxlength="200"></div>
     </section>
     <section class="ai-box">
-      <div class="ai-head"><strong>Which AI reads and explains</strong><span id="aiState" class="tag">Off</span></div>
-      <div class="modes" id="modes">
-        <button class="mode" data-mode="device"><b>On-device AI</b><span>Private and unlimited. Runs in this tab on Chrome or Edge on a laptop. One-time download of about 1 GB.</span></button>
-        <button class="mode" data-mode="key"><b>Your own free key</b><span>Paste a free key from Groq, Google Gemini or OpenRouter. Fast, and kept only in this browser.</span></button>
-        <button class="mode" data-mode="cloud"><b>Keyless public AI</b><span>No setup, but it has a free-use limit and often refuses. The scripted reader fills in.</span></button>
-        <button class="mode sel" data-mode="off"><b>No AI</b><span>A scripted reader. Always works, even offline.</span></button>
+      <div class="ai-head"><strong>AI</strong><span id="aiState" class="tag">Off</span></div>
+      <div class="modes seg" id="modes">
+        <button class="mode" data-mode="device"><b>On-device</b><span>Private and unlimited. Runs in this tab on Chrome or Edge on a laptop; one-time download of about 1 GB.</span></button>
+        <button class="mode" data-mode="key"><b>Your key</b><span>Paste a free key from Groq, Google Gemini or OpenRouter. Kept only in this browser.</span></button>
+        <button class="mode" data-mode="cloud"><b>Keyless</b><span>No setup, but a free-use limit; it often refuses and the scripted reader fills in.</span></button>
+        <button class="mode sel" data-mode="off"><b>Off</b><span>A scripted reader. Always works, even offline.</span></button>
       </div>
+      <p id="modeDesc" class="ai-note"></p>
       <div id="keyForm" class="custom" hidden>
         <select id="kp"></select><input id="kk" type="password" placeholder="Paste your key" autocomplete="off"><label hidden>Web address<input id="kb" placeholder="https://…/v1"></label><input id="km" placeholder="Model name"><p id="khelp" class="ai-note"></p><button id="kt" class="ghost">Save and test</button>
       </div>
       <div class="bar" hidden id="aiBar"><i id="aiFill"></i></div>
       <p id="aiNote" class="ai-note"></p>
     </section>
-    <ul class="notes">
-      <li>The AI reads your message, explains the plan and answers questions. The rules decide what fits, so it can’t invent a stay or a price.</li>
-      <li>Stays and sights are real listings from OpenStreetMap. Fares, times and availability are estimates, and nothing is booked or charged here.</li>
-    </ul>
-    <button id="reset" class="link">Start again</button>
-    <p class="fine">Place data © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>. Not affiliated with Cleartrip. Built for a design assignment.</p>
+    <p class="fine">Rules decide what fits; the AI reads and explains. Stays and sights: real listings © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>. Fares are estimates; nothing is booked. Not affiliated with Cleartrip. <button id="reset" class="link">Start again</button></p>
   </aside>
-  <div class="phone"><div id="app" class="screen"></div></div>
+  <div class="phone-wrap"><div class="phone">
+    <div class="island"></div>
+    <div class="sbar"><span>9:41</span><span class="sb-ic"><svg viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg><svg viewBox="0 0 16 12"><path d="M8 11.5l2.4-2.9a3.6 3.6 0 00-4.8 0z"/><path d="M3.2 6.6a7 7 0 019.6 0l1.5-1.8a9.4 9.4 0 00-12.6 0z"/><path d="M.6 3.6a10.6 10.6 0 0114.8 0L16 2.9A12 12 0 000 2.9z" opacity=".95"/></svg><span class="batt"><i></i></span></span></div>
+    <div id="app" class="screen"></div>
+    <div class="homebar"></div>
+  </div></div>
 </main>
 <script src="data.js"></script>
 <script src="places.js"></script>

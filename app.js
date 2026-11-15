@@ -28,7 +28,7 @@ const greet = () => AI.persona.greet || `Hi, I’m ${AI.persona.name}. Tell me a
 const facts = () => `Trip: ${S.days} days in ${S.to}, ${Engine.date(S, 0)} to ${Engine.date(S, S.days - 1)}. Travellers: ${S.households.map(h => `${h.name} from ${h.from}: ${h.members.map(m => m.name + ' (' + m.age + ')').join(', ')}`).join('; ')}. Vibe wanted: ${S.vibe}. Step-free access needed by: ${S.access.join(', ') || 'no one'}. Pure-veg kitchen needed: ${S.veg ? 'yes' : 'no'}. Budget cap per person: ${S.cap} rupees. Plan cost: ${Math.round(P.per)} rupees per person, ${Math.round(P.total)} in total. Transport: ${P.legs.map(l => `${l.opt.name} from ${l.city} leaving ${l.opt.dep}, arriving ${l.opt.arr}, ${l.opt.price} rupees each way, chosen because ${l.why}; other options were ${l.all.filter(o => o.id !== l.opt.id).map(o => o.name + ' at ' + o.dep + ' for ' + o.price).join(', ') || 'none'}`).join('. ')}. Shortlisted stays: ${P.stays.map(s => `${s.name} in ${s.area}, ${s.room} rupees a room a night, rated ${s.rating} from ${s.reviews} reviews, host for ${s.hostYears} years, ${s.reasons.join(', ')}`).join(' | ')}. Current stay: ${P.stay.name}. Sights planned: ${sights().join(', ')}; optional paid activity: ${D().extra} at ${DATA.perPerson.extra} rupees per person. All data is simulated.`;
 
 const ONB = [
-  ['Plan for everyone', 'Tell it who’s going. It plans around naps, stairs and food for each person.', '<circle cx="60" cy="70" r="26" fill="#FFEFE9"/><circle cx="110" cy="58" r="30" fill="#FFD9CC"/><circle cx="160" cy="72" r="24" fill="#FFEFE9"/><circle cx="60" cy="64" r="9" fill="#F05A2A"/><circle cx="110" cy="50" r="11" fill="#F05A2A"/><circle cx="160" cy="66" r="8" fill="#F05A2A"/><rect x="38" y="112" width="144" height="14" rx="7" fill="#1A1A1A" opacity=".08"/>'],
+  ['Plan for everyone', 'Tell it who’s going. It plans around naps, stairs and food for each person.', '<circle cx="60" cy="70" r="26" fill="#FFEFE9"/><circle cx="110" cy="58" r="30" fill="#FFD9CC"/><circle cx="160" cy="72" r="24" fill="#FFEFE9"/><circle cx="60" cy="64" r="9" fill="#F05A2A"/><circle cx="110" cy="50" r="11" fill="#F05A2A"/><circle cx="160" cy="66" r="8" fill="#F05A2A"/><rect x="38" y="112" width="144" height="14" rx="7" fill="#EDEDED"/>'],
   ['See why, every time', 'Every step and every stay shows its reasons and proof, tagged to a person.', '<rect x="40" y="30" width="140" height="100" rx="14" fill="#fff" stroke="#E6E6E6" stroke-width="2"/><path d="M58 58l8 8 14-16" stroke="#11845B" stroke-width="4" fill="none" stroke-linecap="round"/><rect x="92" y="54" width="70" height="8" rx="4" fill="#E6E6E6"/><path d="M58 92l8 8 14-16" stroke="#11845B" stroke-width="4" fill="none" stroke-linecap="round"/><rect x="92" y="88" width="56" height="8" rx="4" fill="#E6E6E6"/><circle cx="170" cy="36" r="16" fill="#F05A2A"/><path d="M170 28v10M170 43v1" stroke="#fff" stroke-width="3" stroke-linecap="round"/>'],
   ['You make the final call', 'The AI shortlists. You pick the stay, pay and share it with the family.', '<rect x="30" y="40" width="70" height="86" rx="12" fill="#fff" stroke="#E6E6E6" stroke-width="2"/><rect x="120" y="40" width="70" height="86" rx="12" fill="#fff" stroke="#F05A2A" stroke-width="3"/><rect x="132" y="104" width="46" height="12" rx="6" fill="#F05A2A"/><rect x="42" y="104" width="46" height="12" rx="6" fill="#E6E6E6"/><circle cx="155" cy="68" r="14" fill="#FFEFE9"/><path d="M148 68l5 5 9-10" stroke="#F05A2A" stroke-width="3" fill="none" stroke-linecap="round"/>']];
 const V = {
@@ -51,7 +51,7 @@ const V = {
     let b = say(esc(greet()));
     if (!S.thread.length) b += `<p class="sec">Try one of these</p><div class="chips">${ex.map(e => `<button class="chip" data-a="example" data-v="${esc(e)}">${esc(e)}</button>`).join('')}</div>`;
     else {
-      for (const m of S.thread) b += m.who === 'me' ? `<div class="msg me"><div class="bub">${esc(m.t)}</div></div>` : say(esc(m.t));
+      S.thread.forEach((m, i) => { const nw = i >= (S.seen || 0) ? ' new' : ''; b += m.who === 'me' ? `<div class="msg me${nw}"><div class="bub">${esc(m.t)}</div></div>` : say(esc(m.t)).replace('class="msg"', 'class="msg' + nw + '"'); });
       if (S.busy) b += say(`<div class="typing" aria-label="Reading your message"><i></i><i></i><i></i></div>`);
       else b += say(`<span>${esc(p.ack || 'Got it.')} <b>${S.days} days in ${S.to}</b>${S.guessedTo ? ' (you didn’t name a place, so I’ve assumed Goa; change it on the next screen)' : ''}. Here’s who is going:</span>${S.households.map(h => `<div><div class="d">${esc(h.name)} · from ${h.from}</div><div class="chips" style="margin-top:6px">${h.members.map(m => `<span class="chip plain ${m.name === S.justAdded ? 'pop' : ''}">${esc(m.name)} · ${m.age}<button class="x" data-a="rm" data-v="${h.id}" data-k="${esc(m.name)}" aria-label="Remove ${esc(m.name)}">×</button></span>`).join('')}</div></div>`).join('')}<b>${plural(count(), 'traveller')} · ${plural(S.households.length, 'household')}</b>
         <div class="addp"><p class="d">Add someone, or type a change below (like “add my sister Riya, 30”).</p><div class="row"><input id="pn" placeholder="Name" maxlength="24"><input id="pa" type="number" inputmode="numeric" min="0" max="95" placeholder="Age" style="max-width:72px"></div><select id="ph">${S.households.map(h => `<option value="${h.id}">${esc(h.name)}</option>`).join('')}<option value="new">A new household</option></select><label class="chk"><input type="checkbox" id="pacc"> Needs step-free access</label>${S.formErr ? `<p class="err">${esc(S.formErr)}</p>` : ''}<button class="sm k" data-a="addp">Add person</button></div>`) + `<p class="d center">${S.reader}</p>`;
@@ -222,7 +222,8 @@ function render(scroll = true, anim = true) {
   if (!changed) app.classList.remove('in-fwd', 'in-back');
   if (changed && lastScreen) { app.classList.remove('in-fwd', 'in-back'); void app.offsetWidth; app.classList.add(back ? 'in-back' : 'in-fwd'); }
   if (changed) app.querySelectorAll('[data-n]').forEach(countUp);
-  lastScreen = S.screen; if (S.justAdded) setTimeout(() => { S.justAdded = ''; }, 50);
+  lastScreen = S.screen; if (S.screen === 'chat') setTimeout(() => { S.seen = S.thread.length; }, 0);
+  document.querySelector('.phone').classList.toggle('on-orange', S.screen === 'splash'); if (S.justAdded) setTimeout(() => { S.justAdded = ''; }, 50);
   const b = app.querySelector('.body'); if (b) b.scrollTop = scroll ? (S.screen === 'chat' ? b.scrollHeight : 0) : keep;
   if (anim && S.screen === 'planning') animatePlanning();
   if (anim && S.screen === 'booking' && !S.sold) animateBooking();
@@ -283,7 +284,8 @@ $('#reset').onclick = () => act('reset');
 // ---- side panel: planner personality and AI choice ----
 const drawPersonas = () => {
   const cur = AI.persona.id;
-  $('#personas').innerHTML = [...PERSONAS, { id: 'custom', name: 'Your own', tag: 'Name it and say how it talks' }].map(p => `<button class="mode ${cur === p.id ? 'sel' : ''}" data-p="${p.id}"><b>${esc(p.name)}</b><span>${esc(p.tag)}</span></button>`).join('');
+  $('#personas').innerHTML = [...PERSONAS, { id: 'custom', name: 'Your own', tag: 'Name it and say how it talks' }].map(p => `<button class="mode ${cur === p.id ? 'sel' : ''}" data-p="${p.id}"><b>${esc(p.name)}</b></button>`).join('');
+  const pp = [...PERSONAS, { id: 'custom', tag: 'Name it and say how it talks.' }].find(p => p.id === cur); $('#pDesc').textContent = cur === 'custom' ? 'Your own planner. Set a name and a manner below.' : (pp ? pp.tag + '. ' + pp.style.split('.')[1].trim() + '.' : '');
   $('#customP').hidden = cur !== 'custom'; if (cur === 'custom') { $('#cpn').value = AI.persona.name; $('#cps').value = AI.persona.style; }
 };
 const customPersona = () => ({ id: 'custom', name: $('#cpn').value.trim().slice(0, 20) || 'Kavya', style: $('#cps').value.trim().slice(0, 200) || 'Cheerful and encouraging. Keeps it short.', greet: null, ack: 'Got it.' });
@@ -292,7 +294,7 @@ $('#personas').onclick = e => { const b = e.target.closest('[data-p]'); if (!b) 
 drawPersonas();
 
 const stateTag = () => { const st = $('#aiState'); st.textContent = { device: 'On-device', key: AI.cfg.key ? 'Your key' : 'Needs key', cloud: 'Keyless', off: 'Off' }[AI.mode]; st.className = 'tag ' + (AI.mode === 'off' ? '' : AI.ready ? 'on' : 'busy'); };
-const mark = () => { document.querySelectorAll('#modes .mode').forEach(b => b.classList.toggle('sel', b.dataset.mode === AI.mode)); $('#keyForm').hidden = AI.mode !== 'key'; stateTag(); render(false, false); };
+const mark = () => { document.querySelectorAll('#modes .mode').forEach(b => b.classList.toggle('sel', b.dataset.mode === AI.mode)); $('#modeDesc').textContent = document.querySelector(`#modes .mode[data-mode=${AI.mode}] span`).textContent; $('#keyForm').hidden = AI.mode !== 'key'; stateTag(); render(false, false); };
 const fillKey = () => { $('#kp').value = AI.cfg.preset; $('#kk').value = AI.cfg.key; $('#kb').value = AI.cfg.base; $('#km').value = AI.cfg.model; $('#kb').parentElement.hidden = AI.cfg.preset !== 'Custom'; $('#khelp').textContent = PRESETS[AI.cfg.preset].help + '. The key is kept only in this browser.'; };
 $('#kp').innerHTML = Object.keys(PRESETS).map(n => `<option>${n}</option>`).join(''); fillKey();
 $('#kp').onchange = () => { const p = PRESETS[$('#kp').value]; AI.cfg = { ...AI.cfg, preset: $('#kp').value, base: p.base, model: p.model }; fillKey(); };
@@ -310,6 +312,8 @@ document.querySelectorAll('#modes .mode').forEach(btn => btn.onclick = async () 
   catch (err) { note.textContent = 'Could not start the on-device AI: ' + err.message; }
   bar.hidden = true; mark();
 });
+const fit = () => { const s = Math.min(1, (innerHeight - 40) / 874, (innerWidth - 32) / 414); document.documentElement.style.setProperty('--s', s.toFixed(3)); };
+fit(); addEventListener('resize', fit);
 mark();
 S.screen = 'splash'; render();
 setTimeout(() => { let seen = false; try { seen = localStorage.getItem('ctp.onboarded') === '1'; } catch (e) { /* storage unavailable */ } go(seen ? 'home' : 'onboard'); }, reduce ? 300 : 1900);
