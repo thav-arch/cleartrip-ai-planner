@@ -65,7 +65,7 @@ const Engine = {
   nights(S, h) { return S.remoteShort && this.isRemote(S, h) ? Math.max(1, S.days - 3) : S.days - 1; },
   fmt(n) { return '₹' + Math.round(n).toLocaleString('en-IN'); },
   base: (() => { const d = new Date(); d.setHours(12, 0, 0, 0); d.setDate(d.getDate() + 30); while (d.getDay() !== 2) d.setDate(d.getDate() + 1); return d; })(),
-  date(S, offset) { const d = new Date(this.base); d.setDate(d.getDate() + (S.shift ? 2 : 0) + offset); return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }); },
+  date(S, offset) { const d = S.start ? new Date(S.start + 'T12:00:00') : new Date(this.base); d.setDate(d.getDate() + (S.shift ? 2 : 0) + offset); return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }); },
 
   plan(S) {
     const steps = [], ppl = this.people(S), legs = [], D = DEST[S.to];

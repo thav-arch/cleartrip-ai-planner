@@ -1,7 +1,7 @@
 const $ = s => document.querySelector(s), app = $('#app');
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const F = n => Engine.fmt(n), wait = ms => new Promise(r => setTimeout(r, ms));
-const fresh = () => ({ screen: 'home', text: '', to: 'Goa', guessedTo: false, households: [], days: 5, cap: 15000, access: [], vibe: 'Relaxed', veg: false, nap: true, shift: false, remoteShort: false, dateChoice: 'shift', stayId: null, extra: 'all', forceLeg: {}, moved: false, applied: {}, bk: 0, sold: null, soldDone: false, fix: 0, reader: '', summary: '', busy: false, qa: [], asking: false, looking: false, placeErr: '', toast: '', thread: [], formErr: '' });
+const fresh = () => ({ screen: 'home', text: '', to: 'Goa', guessedTo: false, households: [], days: 5, cap: 15000, access: [], vibe: 'Relaxed', veg: false, nap: true, shift: false, remoteShort: false, dateChoice: 'shift', stayId: null, extra: 'all', forceLeg: {}, moved: false, applied: {}, bk: 0, sold: null, soldDone: false, fix: 0, reader: '', summary: '', busy: false, qa: [], asking: false, looking: false, placeErr: '', toast: '', thread: [], formErr: '', start: '' });
 let S = fresh(), P = null, run = 0;
 const BACK = { chat: 'home', brief: 'chat', dates: 'brief', plan: 'dates', over: 'dates', stays: 'plan', family: 'stays', booking: 'stays', final: 'booking' };
 const go = s => { S.screen = s; run++; render(); };
@@ -50,15 +50,29 @@ const V = {
     return topBar('AI trip planner') + `<div class="body">${aiChip()}${b}</div><div class="foot"><div class="field"><textarea id="msg" placeholder="${S.thread.length ? 'Add or change anything…' : 'Type your trip…'}"></textarea><button class="send" data-a="send" aria-label="Send">↑</button></div>${S.thread.length && !S.busy ? `<button class="cta" data-a="go" data-v="brief">Looks right, continue</button>` : ''}</div>`;
   },
 
-  brief: () => topBar('Trip brief') + `<div class="body"><p class="muted">Everyone sees this brief, so expectations match before I plan.</p>
-    <div class="card"><p class="h">Route</p><datalist id="places">${Places.names().map(n => `<option value="${esc(n)}">`).join('')}</datalist><div class="sel-row"><label>Going to<input data-sel="to" list="places" value="${esc(S.to)}"></label><label>Days<select data-sel="days">${opts([2, 3, 4, 5, 6, 7], S.days)}</select></label></div>
-      ${S.placeErr ? `<p class="err">${esc(S.placeErr)}</p>` : '<p class="d">Type any Indian city or town, or pick from the list.</p>'}${S.households.map(h => `<div class="sel-row"><label>${esc(h.name)} (${h.members.length}) travels from<input data-sel="from" data-h="${h.id}" list="places" value="${esc(h.from)}"></label></div>`).join('')}</div>
-    <div class="card"><p class="h">What’s the vibe?</p><p class="d">“${S.to}” means different things to different people.</p>${chips('vibe', ['Relaxed', 'Sightseeing', 'Party', 'A mix'], S.vibe)}</div>
-    ${elders().length ? `<div class="card"><p class="h">Does anyone need step-free access?</p>${chips('access', elders().map(e => e.name), S.access)}</div>` : ''}
+  brief: () => {
+    const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`, tmr = new Date(); tmr.setDate(tmr.getDate() + 1);
+    return topBar('Trip brief') + `<div class="body"><p class="muted">Everyone sees this brief, so expectations match before I plan.</p>
+    <div class="card"><p class="h">Route and dates</p><datalist id="places">${Places.names().map(n => `<option value="${esc(n)}">`).join('')}</datalist>
+      <label class="fl">Going to<input data-sel="to" list="places" value="${esc(S.to)}" placeholder="Any Indian city or town"></label>
+      <div class="two"><label class="fl">Start date<input type="date" data-sel="start" value="${S.start || iso(Engine.base)}" min="${iso(tmr)}"></label><label class="fl">Days<select data-sel="days">${opts([2, 3, 4, 5, 6, 7], S.days)}</select></label></div>
+      <p class="d">${Engine.date({ ...S, shift: false }, 0)} to ${Engine.date({ ...S, shift: false }, S.days - 1)}${S.placeErr ? '' : ' · type any Indian city or town, or pick from the list'}</p>${S.placeErr ? `<p class="err">${esc(S.placeErr)}</p>` : ''}</div>
+    <p class="sec">Who’s going</p>
+    ${S.households.map(h => `<div class="card"><div class="two"><label class="fl">Group name<input data-sel="hname" data-h="${h.id}" value="${esc(h.name)}" maxlength="30"></label><label class="fl">Travels from<input data-sel="from" data-h="${h.id}" list="places" value="${esc(h.from)}"></label></div>
+      <div class="chips">${h.members.map(m => `<span class="chip plain">${esc(m.name)} · ${m.age}<button class="x" data-a="rm" data-v="${h.id}" data-k="${esc(m.name)}" aria-label="Remove ${esc(m.name)}">×</button></span>`).join('')}</div>
+      <div class="addrow"><input id="mn-${h.id}" placeholder="Name" maxlength="24"><input id="ma-${h.id}" type="number" inputmode="numeric" min="0" max="95" placeholder="Age"><button class="sm k" data-a="addm" data-v="${h.id}">Add</button></div>
+      ${h.id !== 'h1' ? `<button class="link" style="text-align:left" data-a="rmh" data-v="${h.id}">Remove this group</button>` : ''}</div>`).join('')}
+    ${S.formErr ? `<p class="err">${esc(S.formErr)}</p>` : ''}
+    <div class="card dash"><p class="h">Add another group</p><p class="d">A family, a set of friends, or one person travelling from elsewhere.</p>
+      <div class="two"><input id="gn" placeholder="Group name, e.g. Riya’s family" maxlength="30"><input id="gf" list="places" placeholder="Travels from" value="${esc(S.households[0].from)}"></div>
+      <div class="addrow"><input id="gm" placeholder="First person’s name" maxlength="24"><input id="ga" type="number" inputmode="numeric" min="0" max="95" placeholder="Age"><button class="sm k" data-a="addg">Add</button></div></div>
+    <div class="card"><p class="h">What’s the vibe?</p><p class="d">“${esc(S.to)}” means different things to different people.</p>${chips('vibe', ['Relaxed', 'Sightseeing', 'Party', 'A mix'], S.vibe)}</div>
+    ${elders().length ? `<div class="card"><p class="h">Does anyone need step-free access?</p>${chips('access', Engine.people(S).filter(p => p.age >= 40).map(e => e.name), S.access)}</div>` : ''}
     ${tots().length ? `<div class="card"><p class="h">Does ${esc(tots().map(t => t.name).join(' or '))} nap in the afternoon?</p><p class="d">I’ll keep 1–3 pm free and avoid packed days.</p>${chips('nap', ['Yes', 'No'], S.nap ? 'Yes' : 'No')}</div>` : ''}
     <div class="card"><p class="h">Does anyone need a pure-veg kitchen?</p>${chips('veg', ['Yes', 'No'], S.veg ? 'Yes' : 'No')}</div>
     <div class="card"><p class="h">Budget cap per person</p><p class="d">Set to the lowest ceiling in the group. I won’t go above it.</p><div class="row c sb"><span class="big" id="capv">${F(S.cap)}</span><span class="pill">All travel + stay</span></div><input type="range" id="cap" min="6000" max="40000" step="500" value="${S.cap}"></div>
-  </div>` + foot('Save brief', 'go', 'dates'),
+  </div>` + foot('Save brief', 'go', 'dates');
+  },
 
   dates: () => {
     const r = remote(), a = { ...S, shift: false }, b = { ...S, shift: true }, want = `${Engine.date(a, 0)} – ${Engine.date(a, S.days - 1)}`, free = `${Engine.date(b, 0)} – ${Engine.date(b, S.days - 1)}`;
@@ -206,6 +220,17 @@ function act(a, v, k) {
   if (a === 'example') return read(v);
   if (a === 'send') { const t = $('#msg').value.trim(); if (!t) return; return S.households.length ? refine(t) : read(t); }
   if (a === 'rm') { const h = S.households.find(x => x.id === v); if (!h) return; if (count() <= 1) { S.formErr = 'At least one traveller has to stay.'; return render(false, false); } h.members = h.members.filter(m => m.name !== k); S.access = S.access.filter(n => n !== k); if (!h.members.length) S.households = S.households.filter(x => x !== h); S.stayId = null; return render(false, false); }
+  const addTo = (hid, nm, ag, newGroup) => {
+    let n = (nm || '').trim().slice(0, 24); const age = parseInt(ag);
+    if (!n || isNaN(age) || age < 0 || age > 95) { S.formErr = 'Enter a name and an age from 0 to 95.'; return false; }
+    if (count() >= 24) { S.formErr = 'That’s the most people I can plan for in one trip.'; return false; }
+    const used = names(); let u = n, i = 2; while (used.has(u)) u = n + ' ' + i++; n = u;
+    if (newGroup) S.households.push({ id: 'h' + (Math.max(...S.households.map(h => +h.id.slice(1))) + 1), name: newGroup, from: S.households[0].from, members: [{ name: n, age }] }); else S.households.find(h => h.id === hid).members.push({ name: n, age });
+    S.formErr = ''; S.stayId = null; S.key = Date.now(); return n;
+  };
+  if (a === 'addm') { addTo(v, $('#mn-' + v).value, $('#ma-' + v).value); return render(false, false); }
+  if (a === 'addg') { const g = $('#gn').value.trim() || ($('#gm').value.trim() + '’s group'), n = addTo(null, $('#gm').value, $('#ga').value, g); if (n) { const h = S.households[S.households.length - 1], f = $('#gf').value.trim(); if (f) Places.resolve(f).then(r => { if (r) { h.from = r; render(false, false); } else { S.placeErr = `Couldn’t find “${f}” in India.`; render(false, false); } }); } return render(false, false); }
+  if (a === 'rmh') { S.households = S.households.filter(h => h.id !== v); S.access = S.access.filter(n => names().has(n)); S.stayId = null; return render(false, false); }
   if (a === 'addp') {
     let n = $('#pn').value.trim().slice(0, 24); const age = parseInt($('#pa').value);
     if (!n || isNaN(age) || age < 0 || age > 95) { S.formErr = 'Enter a name and an age from 0 to 95.'; return render(false, false); }
@@ -233,7 +258,7 @@ function act(a, v, k) {
   if (a === 'reset') { S = fresh(); P = null; return go('home'); }
 }
 app.addEventListener('click', e => { const b = e.target.closest('[data-a]'); if (b && !b.disabled) act(b.dataset.a, b.dataset.v, b.dataset.k); });
-app.addEventListener('change', async e => { const el = e.target.closest('[data-sel]'); if (!el) return; const k = el.dataset.sel; S.placeErr = ''; if (k === 'days') S.days = +el.value; else { const name = await Places.resolve(el.value); if (!name) S.placeErr = `Couldn’t find “${el.value}” in India. Pick from the list or try a nearby city.`; else if (k === 'to') { S.to = name; S.guessedTo = false; } else S.households.find(h => h.id === el.dataset.h).from = name; } S.stayId = null; S.forceLeg = {}; render(false, false); });
+app.addEventListener('change', async e => { const el = e.target.closest('[data-sel]'); if (!el) return; const k = el.dataset.sel; S.placeErr = ''; if (k === 'days') S.days = +el.value; else if (k === 'start') S.start = el.value; else if (k === 'hname') { S.households.find(h => h.id === el.dataset.h).name = el.value.trim().slice(0, 30) || 'Group'; } else { const name = await Places.resolve(el.value); if (!name) S.placeErr = `Couldn’t find “${el.value}” in India. Pick from the list or try a nearby city.`; else if (k === 'to') { S.to = name; S.guessedTo = false; } else S.households.find(h => h.id === el.dataset.h).from = name; } S.stayId = null; S.forceLeg = {}; render(false, false); });
 $('#reset').onclick = () => act('reset');
 
 // ---- side panel: planner personality and AI choice ----
