@@ -17,7 +17,7 @@ const PRESETS = {
 };
 const store = { get(k, d) { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* storage unavailable */ } } };
 const AI = {
-  mode: 'off', engine: null, lastError: '', deviceModel: '',
+  mode: 'cloud', engine: null, lastError: '', deviceModel: '',
   cfg: store.get('ctp.ai', { preset: 'Groq', key: '', base: PRESETS.Groq.base, model: PRESETS.Groq.model }),
   persona: store.get('ctp.persona', { id: 'maya', name: 'Maya', style: PERSONAS[0].style, greet: PERSONAS[0].greet, ack: PERSONAS[0].ack }),
   setPersona(p) { this.persona = p; store.set('ctp.persona', p); },
