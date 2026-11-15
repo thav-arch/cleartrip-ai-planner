@@ -26,11 +26,16 @@ const AI = {
   get label() { return { cloud: 'free keyless AI', key: 'AI (your key)', device: 'on-device AI' }[this.mode] || 'scripted reader'; },
   prefer: ['Qwen2.5-1.5B-Instruct-q4f16_1-MLC', 'Llama-3.2-1B-Instruct-q4f16_1-MLC', 'Llama-3.2-1B-Instruct-q4f32_1-MLC', 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC'],
   async loadDevice(onProgress) {
-    if (!navigator.gpu) throw new Error('This browser has no WebGPU. Try a recent Chrome or Edge on a laptop.');
+    if (!navigator.gpu) throw new Error('this browser has no WebGPU. Use a recent Chrome or Edge on a laptop or desktop.');
+    const adapter = await navigator.gpu.requestAdapter();
+    if (!adapter) throw new Error('WebGPU is switched off or your graphics card isn’t supported. In Chrome, check chrome://gpu.');
+    const f16 = adapter.features.has('shader-f16');
     const webllm = await import('https://esm.run/@mlc-ai/web-llm');
     const ids = webllm.prebuiltAppConfig.model_list.map(m => m.model_id);
-    const model = this.prefer.find(m => ids.includes(m)) || ids.find(m => /1B|1\.5B|0\.5B/.test(m));
-    if (!model) throw new Error('No small model is available.');
+    // Smallest models that still read a trip message well. q4f16 needs shader-f16; otherwise use q4f32.
+    const want = f16 ? ['Qwen2.5-1.5B-Instruct-q4f16_1-MLC', 'Llama-3.2-1B-Instruct-q4f16_1-MLC', 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC'] : ['Llama-3.2-1B-Instruct-q4f32_1-MLC', 'Qwen2.5-1.5B-Instruct-q4f32_1-MLC', 'Qwen2.5-0.5B-Instruct-q4f32_1-MLC'];
+    const model = want.find(m => ids.includes(m)) || ids.find(m => /(0\.5B|1B|1\.5B).*q4f32/.test(m));
+    if (!model) throw new Error('no small model is available in this WebLLM version.');
     this.engine = await webllm.CreateMLCEngine(model, { initProgressCallback: p => onProgress(p.progress || 0, p.text || '') });
     this.deviceModel = model;
   },

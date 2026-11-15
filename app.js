@@ -308,8 +308,14 @@ document.querySelectorAll('#modes .mode').forEach(btn => btn.onclick = async () 
   const m = btn.dataset.mode, bar = $('#aiBar'), note = $('#aiNote'); note.textContent = '';
   if (m !== 'device' || AI.engine) { AI.mode = m; if (m === 'cloud') note.textContent = 'This service has a free-use limit and may refuse. If it does, the scripted reader fills in.'; return mark(); }
   const st = $('#aiState'); st.textContent = 'Loading'; st.className = 'tag busy'; bar.hidden = false;
-  try { await AI.loadDevice((p, t) => { $('#aiFill').style.width = Math.round(p * 100) + '%'; note.textContent = t || 'Loading the model…'; }); AI.mode = 'device'; note.textContent = 'Model: ' + AI.deviceModel + '. Nothing leaves this tab.'; }
-  catch (err) { note.textContent = 'Could not start the on-device AI: ' + err.message; }
+  document.querySelectorAll('#modes .mode').forEach(x => x.classList.toggle('sel', x === btn)); $('#modeDesc').textContent = btn.querySelector('span').textContent;
+  let last = Date.now(), lastP = -1; note.textContent = 'Starting… the first load downloads the model once (about 1 GB), then it’s cached on this device.';
+  const watch = setInterval(() => { if (Date.now() - last > 45000) note.textContent = 'Still downloading. This is slow on some connections; leave this tab open. If it never moves, try Chrome on a laptop, or use “Your key” instead.'; }, 5000);
+  try {
+    await AI.loadDevice((p, t) => { if (p !== lastP) { last = Date.now(); lastP = p; } const pct = Math.round(p * 100); $('#aiFill').style.width = pct + '%'; st.textContent = 'Loading ' + pct + '%'; const mb = (t.match(/(\d+)MB fetched/) || [])[1]; note.textContent = pct >= 100 ? 'Preparing the model on your graphics card…' : `Downloading the model: ${pct}%${mb ? ' · ' + mb + ' MB' : ''}. It’s saved after the first time.`; });
+    AI.mode = 'device'; note.textContent = 'Ready. Model: ' + AI.deviceModel + '. Nothing leaves this tab.';
+  } catch (err) { note.textContent = 'Couldn’t start the on-device AI: ' + (err.message || err) + ' The scripted reader is being used instead.'; }
+  clearInterval(watch);
   bar.hidden = true; mark();
 });
 const fit = () => { const s = Math.min(1, (innerHeight - 40) / 874, (innerWidth - 32) / 414); document.documentElement.style.setProperty('--s', s.toFixed(3)); };
