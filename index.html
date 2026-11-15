@@ -2,8 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>AI trip planner · Cleartrip concept</title>
+<meta name="description" content="A design concept: an AI travel agent that plans one trip around every person and helps every household agree.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
@@ -13,17 +14,20 @@
   <aside class="panel">
     <p class="over">Design concept · student project</p>
     <h1>AI trip planner</h1>
-    <p class="lede">One trip that works for every person, and that every household agrees to. Type a trip in your own words and the plan is built from what you say.</p>
+    <p class="lede">One trip that works for every person, and that every household agrees to. Describe a trip in your own words, pick where from and where to, and ask the planner anything about the result.</p>
     <section class="ai-box">
-      <div class="ai-head"><strong>On-device AI</strong><span id="aiState" class="tag">Off</span></div>
-      <p id="aiNote">Runs a small open model inside this browser tab. Nothing you type leaves your device, and there is no API key. The first load downloads about 1 GB.</p>
+      <div class="ai-head"><strong>Which AI reads and explains</strong><span id="aiState" class="tag on">Cloud AI</span></div>
+      <div class="modes">
+        <button class="mode sel" data-mode="cloud"><b>Free cloud AI</b><span>Instant. Your message goes to a free public AI service, so don’t type private details.</span></button>
+        <button class="mode" data-mode="device"><b>On-device AI</b><span>Private. Runs in this tab. Needs Chrome or Edge on a laptop and a one-time download of about 1 GB.</span></button>
+        <button class="mode" data-mode="off"><b>No AI</b><span>A scripted reader. Always works, even offline.</span></button>
+      </div>
       <div class="bar" hidden id="aiBar"><i id="aiFill"></i></div>
-      <button id="aiBtn" class="ghost">Turn on on-device AI</button>
+      <p id="aiNote" class="ai-note"></p>
     </section>
     <ul class="notes">
-      <li>Without the model, a scripted reader does the same job, so the prototype always works.</li>
-      <li>The rules decide what fits. The model only reads your message and explains the plan.</li>
-      <li>All trains, flights, stays and prices are made up. Nothing is booked or charged.</li>
+      <li>The AI reads your message, explains the plan and answers questions. The rules decide what fits, so it can’t invent a stay or a price.</li>
+      <li>All routes, stays and prices are made up. Nothing is booked or charged.</li>
     </ul>
     <button id="reset" class="link">Start again</button>
     <p class="fine">Not affiliated with Cleartrip. Built for a design assignment.</p>

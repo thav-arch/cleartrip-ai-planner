@@ -11,12 +11,15 @@ Open `index.html` in a browser. There is no build step and no server.
 3. The site appears at `https://<your-username>.github.io/<repo-name>/` after a minute.
 
 ## How it works
-- `data.js` holds the made-up inventory.
+- `data.js` generates made-up routes and stays for 9 origin cities and 6 destinations.
 - `engine.js` is the rules engine. It reads the trip brief and decides what fits: no early starts for young children, lower berths and step-free stays for anyone who needs them, and nothing above the budget cap.
-- `ai.js` loads a small open model with WebLLM and runs it in the browser tab through WebGPU. There is no API key and nothing leaves the device. The model reads the traveller's message into a brief and writes a short plan summary. Its output is validated, and the rules engine still makes every decision.
+- `ai.js` is the AI layer. The model reads the traveller's message into a brief, writes a short plan summary and answers questions about the plan. Its output is validated, and the rules engine still makes every decision.
 - `app.js` draws the screens and runs the flow.
 
-## On-device AI: what to expect
-- It needs a recent Chrome or Edge on a laptop or desktop with WebGPU. It is unreliable on phones.
-- The first load downloads roughly 1 GB and is cached afterwards.
-- If the model can't load, the scripted reader in `engine.js` does the same job, so the prototype always works.
+## The three AI modes
+- **Free cloud AI (default):** calls Pollinations, a free public AI service that needs no key. Messages are sent to that service, so don't type private details. It can be slow or unavailable; the app then falls back to the scripted reader.
+- **On-device AI:** loads a small open model with WebLLM and runs it in the tab through WebGPU. Nothing leaves the device. It needs a recent Chrome or Edge on a laptop and a one-time download of roughly 1 GB.
+- **No AI:** a scripted reader. Always works, including offline.
+
+## What a real product would still need
+Live inventory and prices from booking partners, real accounts and sharing between households, payments, and an AI service with a contract behind it. None of that is in this prototype.
